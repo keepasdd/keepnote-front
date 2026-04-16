@@ -1,23 +1,50 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  /* ===== KeepNote 暗色橄榄绿主题 ===== */
+  /* 背景层次 */
+  --bg:        #222b23;          /* 页面底色（稍微提亮） */
+  --surface:   #273029;          /* 侧边栏 / 卡片基底 */
+  --surface2:  rgba(255,255,255,0.07);  /* 次级面板 / 代码块 */
+  --surface3:  rgba(255,255,255,0.11);  /* hover 状态 */
+
+  /* 文字（整体提亮，确保可读性） */
+  --text:       rgba(255,255,255,0.95);
+  --text-h:     #ffffff;
+  --text-muted: rgba(255,255,255,0.68);
+  --text-dim:   rgba(255,255,255,0.45);
+
+  /* 边框（加强对比度） */
+  --border:        rgba(255,255,255,0.14);
+  --border-active: rgba(255,255,255,0.28);
+
+  /* 强调色 —— 鼠尾草绿 */
+  --accent:       #7eba6c;               /* rgb(126,186,108) */
+  --accent-hover: #93cc7f;
+  --accent-dim:   rgba(126,186,108,0.12);
+  --accent-bg:    rgba(126,186,108,0.10);
+  --accent-border:rgba(126,186,108,0.45);
+
+  /* RGB fallbacks used by components before JS init */
+  --accent-rgb: 126, 186, 108; /* default r,g,b */
+  --accent-soft-rgb: 160, 200, 140;
+  --accent-contrast-rgb: 190, 220, 170;
+
+  /* 旧变量别名（向下兼容 style.css 中的其他选择器） */
+  --code-bg:   rgba(255,255,255,0.05);
+  --social-bg: rgba(255,255,255,0.06);
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    rgba(0,0,0,0.45) 0 10px 24px -4px, rgba(0,0,0,0.25) 0 4px 8px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* 字体族 */
+  --font-body:  'Inter', 'PingFang SC', system-ui, sans-serif;
+  --font-serif: 'Inter', 'PingFang SC', system-ui, sans-serif;
+  --font-mono:  ui-monospace, 'JetBrains Mono', Consolas, monospace;
+  --sans:   var(--font-body);
+  --heading:var(--font-body);
+  --mono:   var(--font-mono);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  font: 15px/150% var(--font-body);
+  letter-spacing: 0.15px;
+  color-scheme: dark;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -26,28 +53,29 @@
   -moz-osx-font-smoothing: grayscale;
 
   @media (max-width: 1024px) {
-    font-size: 16px;
+    font-size: 14px;
   }
 }
+/* style.css —— 在 :root {} 后面追加 */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+[data-theme="light"] {
+  /* 背景层次 */
+  --bg:        #f5f5f0;
+  --surface:   #ffffff;
+  --surface2:  rgba(0, 0, 0, 0.04);
+  --surface3:  rgba(0, 0, 0, 0.07);
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+  /* 文字 */
+  --text:       rgba(0, 0, 0, 0.88);
+  --text-h:     #1a1a1a;
+  --text-muted: rgba(0, 0, 0, 0.55);
+  --text-dim:   rgba(0, 0, 0, 0.38);
+
+  /* 边框 */
+  --border:        rgba(0, 0, 0, 0.10);
+  --border-active: rgba(0, 0, 0, 0.22);
+
+  color-scheme: light;
 }
 
 body {

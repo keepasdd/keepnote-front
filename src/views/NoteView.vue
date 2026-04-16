@@ -264,6 +264,21 @@ async function save() {
     const detail = await getNoteDetail(editForm.id)
     note.value = detail
     attachments.value = detail.attachments || []
+    // 立即更新标签显示，避免后端延迟
+    if (editForm.tagIds && tags.value.length) {
+      const tagMap = new Map()
+      // 构建标签映射（支持树形结构）
+      const buildTagMap = (tagList) => {
+        for (const tag of tagList) {
+          tagMap.set(tag.id, tag)
+          if (tag.children) {
+            buildTagMap(tag.children)
+          }
+        }
+      }
+      buildTagMap(tags.value)
+      note.value.tags = editForm.tagIds.map(id => tagMap.get(id)).filter(Boolean)
+    }
     isEditing.value = false
   } finally {
     saving.value = false
@@ -286,6 +301,7 @@ async function toggleFavorite() {
 </script>
 
 <style scoped>
+/* ===== 页面基础 ===== */
 .note-view {
   max-width: 760px;
   margin: 0 auto;
@@ -293,14 +309,24 @@ async function toggleFavorite() {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'Inter', 'PingFang SC', system-ui, sans-serif;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
 }
 
+/* ===== 顶部工具栏 ===== */
 .note-view-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 28px;
   flex-shrink: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
 }
 .note-view-id {
   font-family: var(--font-mono);
@@ -312,81 +338,167 @@ async function toggleFavorite() {
 
 .note-view-loading { padding: 40px 0; }
 
+/* ===== 元信息 ===== */
 .note-view-meta { flex-shrink: 0; }
 .note-view-title {
-  font-family: var(--font-serif);
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--text);
-  line-height: 1.3;
-  margin-bottom: 12px;
+  color: var(--text-h);
+  line-height: 1.2;
+  margin-bottom: 14px;
+  letter-spacing: -0.5px;
 }
 
 .title-input {
-  width: 100%; background: none; border: none; outline: none;
-  font-family: var(--font-serif); font-size: 26px; font-weight: 700;
-  color: var(--text); line-height: 1.3; margin-bottom: 14px; display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-h);
+  line-height: 1.2;
+  margin-bottom: 14px;
+  display: block;
+  letter-spacing: -0.5px;
+  caret-color: rgba(var(--accent-rgb), 0.9);
 }
+.title-input::placeholder { color: var(--text-dim); }
 
-.info-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
-.info-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
 .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 
-.meta-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-
-.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-.tag-pill { font-size: 11px; padding: 3px 10px; border-radius: 6px; }
-
-.note-view-divider { height: 1px; background: var(--border); margin-bottom: 0; flex-shrink: 0; }
-
-.stats-row { display: flex; gap: 1px; padding: 14px 0; flex-shrink: 0; }
-.stat { flex: 1; background: var(--surface2); padding: 10px 12px; text-align: center; }
-.stat:first-child { border-radius: 8px 0 0 8px; }
-.stat:last-child { border-radius: 0 8px 8px 0; }
-.stat-num { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--accent); line-height: 1; }
-.stat-label { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
-
-.note-view-body { flex: 1; padding: 20px 0 0; }
-.note-view-content { font-size: 15px; color: var(--text-muted); line-height: 1.9; }
-
-.content-editor {
-  width: 100%; min-height: 400px; height: 100%;
-  background: none; border: none; outline: none; resize: none;
-  font-size: 15px; color: var(--text-muted); line-height: 1.9;
+.meta-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 
-/* 附件区域 */
-.attachments-section {
-  margin-top: 20px;
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.tag-pill {
+  font-size: 11px;
+  padding: 4px 11px;
+  border-radius: 999px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 16px;
+  color: var(--text);
+  background: var(--surface3);
+}
+
+/* ===== 分割线 ===== */
+.note-view-divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 0;
   flex-shrink: 0;
 }
-.attachments-section.readonly {
+
+/* ===== 统计条 ===== */
+.stats-row {
+  display: flex;
+  gap: 10px;
+  padding: 16px 0;
+  flex-shrink: 0;
+}
+.stat {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 16px 14px;
+  text-align: center;
+  border-radius: 14px;
+}
+.stat:first-child { border-radius: 14px 0 0 14px; border-right: none; }
+.stat:last-child  { border-radius: 0 14px 14px 0; border-left: none; }
+.stat-num {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+.stat-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+/* ===== 内容体 ===== */
+.note-view-body { flex: 1; padding: 24px 0 0; }
+.note-view-content {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.9;
+}
+
+.content-editor {
+  width: 100%;
+  min-height: 420px;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.9;
+  caret-color: rgba(var(--accent-rgb), 0.9);
+}
+.content-editor::placeholder { color: var(--text-dim); }
+
+/* ===== 附件区域 ===== */
+.attachments-section {
+  margin-top: 26px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 18px 14px;
+  flex-shrink: 0;
   background: var(--surface2);
 }
+.attachments-section.readonly { background: var(--surface3); }
 .attachments-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 14px;
 }
 .attachments-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1.4px;
 }
-.attachments-list { display: flex; flex-direction: column; gap: 6px; }
+.attachments-list { display: flex; flex-direction: column; gap: 10px; }
 .attachment-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 7px;
-  background: var(--surface2);
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
   font-size: 13px;
 }
 .att-icon { color: var(--accent); flex-shrink: 0; }
@@ -397,11 +509,21 @@ async function toggleFavorite() {
   white-space: nowrap;
   color: var(--text);
 }
-.att-size { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); flex-shrink: 0; }
-.att-actions { display: flex; gap: 4px; flex-shrink: 0; }
-.attachments-empty { font-size: 12px; color: var(--text-dim); text-align: center; padding: 10px 0; }
+.att-size {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+.att-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.attachments-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 14px 0 0;
+}
 
-/* 图片网格 */
+/* ===== 图片网格 ===== */
 .image-grid {
   display: flex;
   flex-wrap: wrap;
@@ -411,16 +533,15 @@ async function toggleFavorite() {
 .image-thumb-wrap {
   position: relative;
   width: 100px;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
   text-decoration: none;
   cursor: pointer;
   flex-shrink: 0;
+  background: var(--surface3);
 }
-.image-thumb-wrap.edit {
-  width: 110px;
-}
+.image-thumb-wrap.edit { width: 110px; }
 .image-thumb {
   width: 100%;
   height: 80px;
@@ -429,24 +550,55 @@ async function toggleFavorite() {
 }
 .image-thumb-name {
   font-size: 10px;
-  color: var(--text-muted);
+  color: var(--text-dim);
   padding: 4px 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: var(--surface2);
+  background: var(--surface3);
 }
 .image-thumb-actions {
   display: flex;
   justify-content: center;
   gap: 3px;
-  padding: 4px 4px;
+  padding: 6px;
   background: var(--surface2);
   border-top: 1px solid var(--border);
 }
 
+/* ===== 编辑底部操作 ===== */
 .edit-footer {
   display: flex; justify-content: flex-end; gap: 8px;
   padding: 16px 0 0; flex-shrink: 0;
 }
+
+/* ===== Element Plus 暗色覆盖 ===== */
+:deep(.el-button) {
+  --el-button-bg-color: var(--surface3);
+  --el-button-border-color: var(--border);
+  --el-button-text-color: var(--text);
+  --el-button-hover-bg-color: var(--surface2);
+  --el-button-hover-border-color: var(--border);
+  --el-button-hover-text-color: var(--text-h);
+}
+:deep(.el-button--primary) {
+  --el-button-bg-color: rgba(180,210,130,0.20);
+  --el-button-border-color: rgba(180,210,130,0.50);
+  --el-button-text-color: rgba(210,240,160,0.98);
+  --el-button-hover-bg-color: rgba(180,210,130,0.32);
+  --el-button-hover-border-color: rgba(180,210,130,0.75);
+  --el-button-hover-text-color: #fff;
+}
+:deep(.el-select__wrapper) {
+  background: var(--surface3) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  color: var(--text) !important;
+}
+:deep(.el-select__wrapper.is-focused) {
+  border-color: rgba(var(--accent-rgb), 0.60) !important;
+  box-shadow: none !important;
+}
+:deep(.el-select__placeholder) { color: var(--text-dim) !important; }
+:deep(.el-skeleton__item) { background: var(--surface2) !important; }
 </style>

@@ -10,6 +10,13 @@
         <el-button class="btn-new-tag" @click="openTagDialog(null)">
           <el-icon><PriceTag /></el-icon> 新建标签
         </el-button>
+        <el-button
+          v-if="currentCategory"
+          class="btn-delete-category"
+          @click="openDeleteCategoryDialog"
+        >
+          <el-icon><Delete /></el-icon> 删除分类
+        </el-button>
         <el-button type="primary" class="btn-new" @click="emit('new-note')">
           <el-icon><Plus /></el-icon> 新建笔记
         </el-button>
@@ -215,6 +222,65 @@
       <el-button type="primary" :loading="editSaving" @click="submitEdit">保存</el-button>
     </template>
   </el-dialog>
+
+  <el-dialog v-model="deleteCategoryDialogVisible" title="删除分类" width="420px" align-center>
+    <div class="delete-category-tip">
+      删除分类「{{ currentCategory?.name }}」前，请先选择该分类下笔记的新去向。
+    </div>
+    <el-form label-width="88px" @submit.prevent>
+      <el-form-item label="处理方式">
+        <el-radio-group v-model="deleteCategoryForm.mode">
+          <el-radio :disabled="!availableTargetCategories.length" value="existing">转移到已有分类</el-radio>
+          <el-radio value="new">新建分类后转移</el-radio>
+        </el-radio-group>
+      </el-form-item>
+
+      <template v-if="deleteCategoryForm.mode === 'existing'">
+        <el-form-item label="目标分类">
+          <el-select
+            v-model="deleteCategoryForm.targetCategoryId"
+            placeholder="请选择目标分类"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="category in availableTargetCategories"
+              :key="category.id"
+              :label="category.name"
+              :value="category.id"
+            />
+          </el-select>
+        </el-form-item>
+      </template>
+
+      <template v-else>
+        <el-form-item label="分类名称">
+          <el-input
+            v-model="deleteCategoryForm.newCategoryName"
+            maxlength="20"
+            show-word-limit
+            placeholder="请输入新分类名称"
+          />
+        </el-form-item>
+        <el-form-item label="分类颜色">
+          <div class="color-options">
+            <span
+              v-for="c in categoryColorPresets" :key="c"
+              class="color-dot"
+              :style="{ background: c, outline: deleteCategoryForm.newCategoryColor === c ? `2px solid ${c}` : 'none' }"
+              @click="deleteCategoryForm.newCategoryColor = c"
+            />
+            <el-color-picker v-model="deleteCategoryForm.newCategoryColor" size="small" />
+          </div>
+        </el-form-item>
+      </template>
+    </el-form>
+    <template #footer>
+      <el-button @click="deleteCategoryDialogVisible = false">取消</el-button>
+      <el-button type="danger" :loading="deleteCategorySaving" @click="submitDeleteCategory">
+        确认删除
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -222,6 +288,8 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, PriceTag, Edit, Delete } from '@element-plus/icons-vue'
 import { addTag, updateTag, deleteTag } from '../api/tag'
+import { addCategory, deleteCategory, getCategoryList } from '../api/category'
+import { getNoteList, updateNote } from '../api/note'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
@@ -229,13 +297,15 @@ const router = useRouter()
 const props = defineProps({
   notes: { type: Array, default: () => [] },
   tags: { type: Array, default: () => [] },  // 树形结构（含 children）
+  categories: { type: Array, default: () => [] },
   total: { type: Number, default: 0 },
   pageSize: { type: Number, default: 20 },
   loading: { type: Boolean, default: false },
   activeNoteId: { type: Number, default: null },
+  activeCategoryId: { type: Number, default: null },
   title: { type: String, default: '全部笔记' },
 })
-const emit = defineEmits(['select', 'new-note', 'filter-change', 'tag-added'])
+const emit = defineEmits(['select', 'new-note', 'filter-change', 'tag-added', 'category-deleted'])
 
 const dateFilter = ref('')
 const activeTagId = ref(null)
@@ -283,11 +353,20 @@ const flatTags = computed(() => {
   return result
 })
 
+const currentCategory = computed(() =>
+  props.categories.find(category => category.id === props.activeCategoryId) || null,
+)
+
+const availableTargetCategories = computed(() =>
+  props.categories.filter(category => category.id !== props.activeCategoryId),
+)
+
 // ---- 新建标签 ----
 const tagDialogVisible = ref(false)
 const tagSaving = ref(false)
 const colorPresets = ['#3a7d3f', '#e67e22', '#2980b9', '#8e44ad', '#e74c3c', '#16a085', '#f39c12', '#7f8c8d']
 const tagForm = ref({ name: '', color: '#3a7d3f', parentId: null })
+const categoryColorPresets = ['#4ecdc4', '#3a7d3f', '#ff6b6b', '#ffe66d', '#a78bfa', '#fb923c', '#2980b9', '#7f8c8d']
 
 function openTagDialog(parentId = null) {
   tagForm.value = { name: '', color: '#3a7d3f', parentId }
@@ -369,6 +448,144 @@ async function removeTag(tag) {
   }
 }
 
+const deleteCategoryDialogVisible = ref(false)
+const deleteCategorySaving = ref(false)
+const deleteCategoryForm = ref({
+  mode: 'existing',
+  targetCategoryId: null,
+  newCategoryName: '',
+  newCategoryColor: '#4ecdc4',
+})
+
+function resetDeleteCategoryForm() {
+  deleteCategoryForm.value = {
+    mode: availableTargetCategories.value.length ? 'existing' : 'new',
+    targetCategoryId: availableTargetCategories.value[0]?.id ?? null,
+    newCategoryName: '',
+    newCategoryColor: '#4ecdc4',
+  }
+}
+
+async function fetchCategoryNotes(categoryId) {
+  const pageSize = 100
+  let page = 1
+  let allNotes = []
+  let total = 0
+
+  do {
+    const data = await getNoteList({ page, pageSize, categoryId })
+    allNotes = allNotes.concat(data.records || [])
+    total = data.total || 0
+    page += 1
+  } while (allNotes.length < total)
+
+  return allNotes
+}
+
+async function deleteCategoryOnly(category) {
+  deleteCategorySaving.value = true
+  try {
+    await deleteCategory(category.id)
+    ElMessage.success(`分类「${category.name}」已删除`)
+    deleteCategoryDialogVisible.value = false
+    emit('category-deleted', {
+      deletedCategoryId: category.id,
+      targetCategoryId: null,
+    })
+  } catch {
+    ElMessage.error('删除分类失败，请重试')
+  } finally {
+    deleteCategorySaving.value = false
+  }
+}
+
+async function openDeleteCategoryDialog() {
+  const category = currentCategory.value
+  if (!category) return
+
+  const noteCount = typeof category.noteCount === 'number'
+    ? category.noteCount
+    : (await getNoteList({ page: 1, pageSize: 1, categoryId: category.id })).total || 0
+
+  if (noteCount === 0) {
+    try {
+      await ElMessageBox.confirm(
+        `分类「${category.name}」下暂无笔记，确定直接删除吗？`,
+        '删除分类',
+        { type: 'warning' },
+      )
+      await deleteCategoryOnly(category)
+    } catch {
+      // 用户取消，忽略
+    }
+    return
+  }
+
+  resetDeleteCategoryForm()
+  deleteCategoryDialogVisible.value = true
+}
+
+async function submitDeleteCategory() {
+  const category = currentCategory.value
+  if (!category) return
+
+  let targetCategoryId = deleteCategoryForm.value.targetCategoryId
+
+  if (deleteCategoryForm.value.mode === 'existing') {
+    if (!targetCategoryId) {
+      ElMessage.warning('请选择目标分类')
+      return
+    }
+  } else {
+    const name = deleteCategoryForm.value.newCategoryName.trim()
+    if (!name) {
+      ElMessage.warning('请输入新分类名称')
+      return
+    }
+    deleteCategorySaving.value = true
+    try {
+      const created = await addCategory({
+        name,
+        color: deleteCategoryForm.value.newCategoryColor,
+      })
+      targetCategoryId = created?.id
+      if (!targetCategoryId) {
+        const latestCategories = await getCategoryList()
+        const matchedCategory = latestCategories
+          .filter(item => item.id !== category.id)
+          .find(item => item.name === name && item.color === deleteCategoryForm.value.newCategoryColor)
+        targetCategoryId = matchedCategory?.id ?? null
+      }
+      if (!targetCategoryId) {
+        throw new Error('新分类创建失败')
+      }
+    } catch {
+      ElMessage.error('新分类创建失败，请重试')
+      deleteCategorySaving.value = false
+      return
+    }
+  }
+
+  deleteCategorySaving.value = true
+  try {
+    const notesInCategory = await fetchCategoryNotes(category.id)
+    await Promise.all(
+      notesInCategory.map(note => updateNote({ id: note.id, categoryId: targetCategoryId })),
+    )
+    await deleteCategory(category.id)
+    ElMessage.success(`分类「${category.name}」已删除，笔记已转移`)
+    deleteCategoryDialogVisible.value = false
+    emit('category-deleted', {
+      deletedCategoryId: category.id,
+      targetCategoryId,
+    })
+  } catch {
+    ElMessage.error('删除分类失败，请重试')
+  } finally {
+    deleteCategorySaving.value = false
+  }
+}
+
 // ---- 筛选 ----
 function toggleTag(id) {
   activeTagId.value = activeTagId.value === id ? null : id
@@ -395,36 +612,82 @@ function emitFilter() {
 </script>
 
 <style scoped>
+/* ===== 面板基础 ===== */
 .note-list-panel {
   display: flex; flex-direction: column;
   height: 100vh; overflow: hidden;
   border-right: 1px solid var(--border);
   background: var(--bg);
+  font-family: 'Inter', 'PingFang SC', system-ui, sans-serif;
 }
 
+/* ===== 头部 ===== */
 .list-header {
-  padding: 28px 24px 0;
+  padding: 26px 22px 0;
   display: flex; align-items: flex-start;
   justify-content: space-between; gap: 12px;
   flex-shrink: 0;
 }
 
+.list-title {
+  font-size: 17px; font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+.list-subtitle {
+  font-size: 11px; color: var(--text-muted);
+  margin-top: 3px; font-family: var(--font-mono);
+}
+
 .header-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
+/* 新建标签按钮 */
 .btn-new-tag {
-  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
-  border-color: var(--border-active); color: var(--text-muted);
-  background: var(--surface);
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important; font-weight: 500 !important;
+  border-radius: 5px !important;
+  transition: all 0.2s !important;
 }
-.btn-new-tag:hover { border-color: var(--accent); color: var(--accent); background: rgba(58,125,63,0.06); }
+.btn-new-tag:hover {
+  border-color: var(--border-active) !important;
+  color: var(--accent) !important;
+  background: var(--surface3) !important;
+}
 
+.btn-delete-category {
+  background: var(--surface2) !important;
+  border: 1px solid rgba(231,76,60,0.35) !important;
+  color: rgba(231,76,60,0.95) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  border-radius: 5px !important;
+  transition: all 0.2s !important;
+}
+.btn-delete-category:hover {
+  border-color: rgba(231,76,60,0.60) !important;
+  color: rgba(231,76,60,1) !important;
+  background: var(--surface3) !important;
+}
+
+/* 新建笔记按钮 */
 .btn-new {
-  background: var(--accent); border-color: var(--accent);
-  font-family: var(--font-mono); font-size: 12px; font-weight: 700;
-  box-shadow: 0 2px 12px rgba(58,125,63,0.25); flex-shrink: 0;
+  background: var(--surface2) !important;
+  border: 1px solid rgba(var(--accent-rgb),0.45) !important;
+  color: var(--accent) !important;
+  font-size: 12px !important; font-weight: 600 !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  transition: all 0.2s !important;
 }
-.btn-new:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-new:hover {
+  background: var(--surface3) !important;
+  border-color: rgba(var(--accent-rgb),0.70) !important;
+  color: var(--text) !important;
+}
 
+/* ===== 颜色点 ===== */
 .color-options { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .color-dot {
   width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
@@ -432,15 +695,34 @@ function emitFilter() {
 }
 .color-dot:hover { transform: scale(1.2); }
 
-.filter-bar { padding: 16px 24px 10px; flex-shrink: 0; }
+/* ===== 筛选栏 ===== */
+.filter-bar { padding: 14px 22px 8px; flex-shrink: 0; }
+
+:deep(.filter-bar .el-radio-button__inner) {
+  background: var(--surface2) !important;
+  border-color: var(--border) !important;
+  color: var(--text-dim) !important;
+  font-size: 12px !important;
+  transition: all 0.15s !important;
+}
+:deep(.filter-bar .el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: rgba(var(--accent-rgb),0.20) !important;
+  border-color: rgba(var(--accent-rgb),0.50) !important;
+  color: rgba(var(--accent-rgb),0.98) !important;
+  box-shadow: none !important;
+}
+:deep(.filter-bar .el-radio-button__inner:hover) {
+  color: var(--text) !important;
+}
 
 /* ===== 多级标签树 ===== */
 .tags-tree {
-  padding: 0 16px 10px;
+  padding: 0 14px 10px;
   display: flex; flex-direction: column; gap: 3px;
-  flex-shrink: 0; max-height: 220px; overflow-y: auto;
+  flex-shrink: 0; max-height: 200px; overflow-y: auto;
 }
-.tags-tree::-webkit-scrollbar { width: 0; }
+.tags-tree::-webkit-scrollbar { width: 3px; }
+.tags-tree::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 
 .tag-row-wrap {
   display: flex; align-items: center; gap: 4px;
@@ -457,8 +739,8 @@ function emitFilter() {
   font-weight: 500; flex-shrink: 0;
 }
 .child-pill { font-size: 10.5px; padding: 2px 9px 2px 6px; }
-.tag-pill:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.1); }
-.tag-pill.active { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.tag-pill:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.3); }
+.tag-pill.active { box-shadow: 0 2px 8px rgba(0,0,0,0.30); }
 
 .tag-dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -470,6 +752,7 @@ function emitFilter() {
   font-size: 8px; display: inline-block;
   transition: transform 0.2s; cursor: pointer;
   transform: rotate(0deg); line-height: 1;
+  color: var(--text-dim);
 }
 .expand-arrow.expanded { transform: rotate(90deg); }
 
@@ -481,17 +764,21 @@ function emitFilter() {
   font-size: 13px; cursor: pointer; color: var(--text-dim);
   padding: 3px; border-radius: 4px; transition: color 0.15s, background 0.15s;
 }
-.tag-action-icon:hover { color: var(--accent); background: rgba(58,125,63,0.08); }
-.tag-action-icon.danger:hover { color: #e74c3c; background: rgba(231,76,60,0.08); }
+.tag-action-icon:hover { color: rgba(200,230,150,0.95); background: rgba(180,210,130,0.12); }
+.tag-action-icon.danger:hover { color: rgba(255,100,80,0.95); background: rgba(231,76,60,0.12); }
 
-/* ===== 列表 ===== */
-.list-body { flex: 1; overflow-y: auto; padding: 0 16px 16px; position: relative; }
+/* ===== 笔记列表体 ===== */
+.list-body { flex: 1; overflow-y: auto; padding: 0 14px 14px; position: relative; }
+.list-body::-webkit-scrollbar { width: 3px; }
+.list-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 
 .empty-state { display: flex; align-items: center; justify-content: center; height: 200px; }
 
+/* ===== 笔记卡片 ===== */
 .note-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 16px; margin-bottom: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px; margin-bottom: 6px;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s, transform 0.15s;
   position: relative; overflow: hidden;
@@ -500,22 +787,72 @@ function emitFilter() {
   content: ''; position: absolute; top: 0; left: 0;
   width: 3px; height: 100%; background: transparent; transition: background 0.2s;
 }
-.note-card:hover { border-color: var(--border-active); background: var(--surface2); transform: translateX(2px); }
-.note-card.active { border-color: rgba(58,125,63,0.3); background: rgba(58,125,63,0.04); }
-.note-card.active::before { background: var(--accent); }
+.note-card:hover {
+  border-color: var(--border-active);
+  background: var(--surface3);
+  transform: translateX(2px);
+}
+.note-card.active {
+  border-color: rgba(var(--accent-rgb),0.40);
+  background: var(--surface2);
+}
+.note-card.active::before { background: rgba(180,210,130,0.85); }
 
-.card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-.card-title { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-date { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); white-space: nowrap; }
-.card-preview { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 10px; }
+.card-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 8px; margin-bottom: 6px;
+}
+.card-title {
+  font-size: 13.5px; font-weight: 500;
+  color: var(--text);
+  flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-date {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-dim); white-space: nowrap;
+}
+.card-preview {
+  font-size: 12px; color: var(--text-muted); line-height: 1.6;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; margin-bottom: 10px;
+}
 .card-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 .note-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; }
-.note-category { margin-left: auto; font-size: 10px; color: var(--text-dim); display: flex; align-items: center; gap: 4px; }
+.note-category {
+  margin-left: auto; font-size: 10px; color: var(--text-dim);
+  display: flex; align-items: center; gap: 4px;
+}
 .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 
-.list-title { font-size: 18px; font-weight: 600; color: var(--text); }
-.list-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+.delete-category-tip {
+  margin-bottom: 16px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  font-size: 13px;
+}
 
-.pagination { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: center; flex-shrink: 0; }
+/* ===== 分页 ===== */
+.pagination {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: center; flex-shrink: 0;
+}
+
+:deep(.pagination .el-pagination button),
+:deep(.pagination .el-pager li) {
+  background: transparent !important;
+  color: var(--text-dim) !important;
+  border: none !important;
+}
+:deep(.pagination .el-pager li.is-active) {
+  color: var(--text) !important;
+  background: rgba(var(--accent-rgb),0.16) !important;
+  border-radius: 4px !important;
+}
+:deep(.pagination .el-pager li:hover) {
+  color: var(--text) !important;
+}
 </style>
+
+
