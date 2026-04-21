@@ -62,8 +62,11 @@
 
     <!-- 查看模式 -->
     <template v-else>
-      <div class="detail-toolbar">
+      <div class="detail-toolbar" :class="{ 'note-is-pinned': note.isPinned }">
         <div class="actions">
+          <el-tooltip :content="note.isPinned ? '取消置顶' : '置顶'">
+            <el-button :icon="Top" :type="note.isPinned ? 'danger' : 'default'" :plain="!note.isPinned" circle size="small" @click="togglePin" />
+          </el-tooltip>
           <el-tooltip content="收藏">
             <el-button :icon="note.isFavorite ? StarFilled : Star" circle size="small" @click="toggleFavorite" />
           </el-tooltip>
@@ -136,7 +139,7 @@
 
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
-import { Edit, Delete, Star, StarFilled, Calendar, Document, Upload, Download, Close } from '@element-plus/icons-vue'
+import { Edit, Delete, Star, StarFilled, Calendar, Document, Upload, Download, Close, Top } from '@element-plus/icons-vue'
 import { addNote, updateNote, deleteNote, uploadAttachment, deleteAttachment } from '../api/note'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -238,6 +241,16 @@ async function confirmDelete() {
 }
 
 function toggleFavorite() { emit('toggle-favorite', props.note.id) }
+
+async function togglePin() {
+  try {
+    await updateNote({ id: props.note.id, isPinned: props.note.isPinned ? 0 : 1 })
+    props.note.isPinned = !props.note.isPinned
+    ElMessage.success(props.note.isPinned ? '已置顶' : '已取消置顶')
+  } catch (err) {
+    ElMessage.error(err.message || '操作失败')
+  }
+}
 
 function noopUpload() {}
 
@@ -374,6 +387,17 @@ function formatSize(size) {
   font-size: 20px; font-weight: 600;
   color: var(--text); line-height: 1.35; margin-bottom: 10px;
   letter-spacing: -0.2px;
+}
+/* 置顶笔记的样式 */
+.detail-panel:has(.note-is-pinned) {
+  background: var(--surface2);
+}
+.detail-panel:has(.note-is-pinned) .detail-title {
+  color: var(--text);
+  font-weight: 700;
+}
+.detail-panel:has(.note-is-pinned) .detail-content {
+  color: var(--text);
 }
 .title-input {
   width: 100%; background: none; border: none; outline: none;

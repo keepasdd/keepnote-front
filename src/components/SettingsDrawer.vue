@@ -1,7 +1,8 @@
 <template>
   <teleport to="body">
-    <div v-if="visible" class="settings-backdrop" @click.self="close">
-      <div class="settings-drawer" role="dialog" aria-modal="true">
+    <transition name="settings-fade">
+      <div v-if="visible" class="settings-backdrop" @click.self="close">
+        <div class="settings-drawer" role="dialog" aria-modal="true">
         <aside class="settings-menu">
           <ul>
             <li :class="{ active: tab === 'profile' }" @click="tab = 'profile'">个人资料</li>
@@ -75,6 +76,7 @@
         </section>
       </div>
     </div>
+    </transition>
   </teleport>
 </template>
 
@@ -110,28 +112,25 @@ watch(visible, (v) => setBodyLocked(v), { immediate: true })
 onBeforeUnmount(() => setBodyLocked(false))
 
 function selectPreset(preset) {
-  const t = { id: preset.id, accent: preset.accent, bgId: preset.bgId || 'tint' }
+  const t = { id: preset.id, accent: preset.accent, bgId: currentBgId.value }
   applyTheme(t)
   saveTheme(t)
   currentAccent.value = preset.accent.toLowerCase()
-  currentBgId.value = t.bgId
 }
 
 function onColorInput(e) {
   const color = e.target.value || '#7eba6c'
-  const t = { id: 'custom', accent: color, bgId: 'tint' }
+  const t = { id: 'custom', accent: color, bgId: currentBgId.value }
   applyTheme(t)
   saveTheme(t)
   currentAccent.value = color.toLowerCase()
-  currentBgId.value = 'tint'
 }
 
 function resetDefault() {
-  const def = { id: 'moss', accent: presets[0].accent, bgId: presets[0].bgId || 'tint' }
+  const def = { id: 'moss', accent: presets[0].accent, bgId: currentBgId.value }
   applyTheme(def)
   saveTheme(def)
   currentAccent.value = def.accent.toLowerCase()
-  currentBgId.value = def.bgId
 }
 
 function selectBackground(bgId) {
@@ -155,10 +154,26 @@ function selectBackground(bgId) {
   justify-content: center;
   align-items: center;
 }
+
+/* 过渡动画 */
+.settings-fade-enter-active,
+.settings-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.settings-fade-enter-from,
+.settings-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(10px);
+}
+.settings-fade-enter-from .settings-drawer,
+.settings-fade-leave-to .settings-drawer {
+  transform: scale(0.95) translateY(10px);
+}
 .settings-drawer {
   width: 900px;
   max-width: calc(100% - 40px);
-  height: 80vh;
+  min-height: 80vh;
+  max-height: 90vh;
   background: var(--bg, rgba(20,26,21,0.98));
   display: flex;
   border-radius: 8px;
@@ -174,11 +189,11 @@ function selectBackground(bgId) {
 .settings-menu li { padding: 12px 10px; cursor: pointer; color: var(--text-muted); border-radius: 6px; }
 .settings-menu li.active { background: var(--accent-bg); color: var(--accent); font-weight: 700; }
 
-.settings-content { flex: 1; padding: 18px 22px; display: flex; flex-direction: column; min-height: 0; }
+.settings-content { flex: 1; padding: 18px 22px; display: flex; flex-direction: column; }
 .settings-header { display:flex; justify-content: space-between; align-items:center; margin-bottom: 10px; }
 .close-btn { background: none; border: none; cursor: pointer; color: var(--text-dim); }
 
-.panel { overflow: auto; padding: 8px 4px 12px; flex: 1; min-height: 0; }
+.panel { padding: 8px 4px 12px; flex: 1; }
 .panel-section-title { font-weight: 600; color: var(--text-h); margin-bottom: 8px; }
 
 .presets { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 16px; }

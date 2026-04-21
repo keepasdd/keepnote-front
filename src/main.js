@@ -7,6 +7,7 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import { useUserStore } from './stores/user'
 import { initTheme } from './utils/theme'
+import 'element-plus/theme-chalk/dark/css-vars.css'
 
 async function bootstrap() {
   const app = createApp(App)

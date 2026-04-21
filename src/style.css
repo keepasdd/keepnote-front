@@ -314,3 +314,18 @@ code {
     border-right-color: var(--border);
   }
 }
+
+/* 修复 Element Plus 输入框在暗色主题下看不见文字 */
+.el-input__wrapper {
+  background-color: var(--surface2) !important;
+  box-shadow: 0 0 0 1px var(--border) inset !important;
+}
+
+.el-input__inner {
+  color: var(--text) !important;
+  background-color: transparent !important;
+}
+
+.el-input__inner::placeholder {
+  color: var(--text-dim) !important;
+}

@@ -1,9 +1,15 @@
 <template>
-  <div class="note-view">
+  <div class="note-view-container">
+    <div class="note-directory-panel">
+      <NoteDirectory :context="directoryContext" :current-note-id="note?.id" @note-selected="handleNoteSelected" />
+    </div>
+    <div class="note-view-main">
     <div class="note-view-header">
       <el-button :icon="ArrowLeft" circle size="small" @click="router.back()" />
-      <span class="note-view-id" v-if="note">#{{ String(note.id).padStart(4, '0') }}</span>
       <div class="actions" v-if="note">
+        <el-tooltip content="附件">
+          <el-button :icon="Paperclip" circle size="small" @click="startEdit" class="attachment-button" />
+        </el-tooltip>
         <el-tooltip content="收藏">
           <el-button :icon="note.isFavorite ? StarFilled : Star" circle size="small" @click="toggleFavorite" />
         </el-tooltip>
@@ -24,7 +30,7 @@
       <div class="note-view-meta">
         <div class="note-view-title">{{ note.title }}</div>
         <div class="info-row">
-          <span class="info-item"><el-icon><Calendar /></el-icon> {{ note.updatedAt }}</span>
+          <span class="info-item"><el-icon><Calendar /></el-icon> 创建: {{ note.createTime }} | 更新: {{ note.updateTime }}</span>
           <span class="info-item"><el-icon><Document /></el-icon> {{ wordCount }} 字</span>
           <span class="info-item" v-if="note.categoryName">
             <span class="dot" :style="{ background: note.categoryColor }" /> {{ note.categoryName }}
@@ -68,7 +74,7 @@
         </div>
         <!-- 非图片列表 -->
         <div v-if="fileAttachments.length" class="attachments-list" :style="imageAttachments.length ? 'margin-top:10px' : ''">
-          <div v-for="att in fileAttachments" :key="att.id" class="attachment-item">
+          <div v-for="att in fileAttachments" :key="att.id" class="attachment-item capsule">
             <el-icon class="att-icon"><Document /></el-icon>
             <span class="att-name" :title="att.fileName">{{ att.fileName }}</span>
             <span class="att-size">{{ formatSize(att.fileSize) }}</span>
@@ -119,7 +125,7 @@
           </div>
           <!-- 非图片行列表（编辑模式） -->
           <template v-if="fileAttachments.length">
-            <div v-for="att in fileAttachments" :key="att.id" class="attachment-item" :style="imageAttachments.length ? 'margin-top:6px' : ''">
+            <div v-for="att in fileAttachments" :key="att.id" class="attachment-item capsule" :style="imageAttachments.length ? 'margin-top:6px' : ''">
               <el-icon class="att-icon"><Document /></el-icon>
               <span class="att-name" :title="att.fileName">{{ att.fileName }}</span>
               <span class="att-size">{{ formatSize(att.fileSize) }}</span>
@@ -145,17 +151,20 @@
         <el-button type="primary" :loading="saving" @click="save">保存</el-button>
       </div>
     </template>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Edit, Delete, Star, StarFilled, Calendar, Document, Paperclip, Plus, Download, Close } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getNoteDetail, updateNote, deleteNote, uploadAttachment, deleteAttachment } from '../api/note'
 import { getCategoryList } from '../api/category'
 import { getTagList } from '../api/tag'
+import NoteDirectory from '../components/NoteDirectory.vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
+
 
 const route = useRoute()
 const router = useRouter()
@@ -171,6 +180,22 @@ const attachments = ref([])
 const editorRef = ref(null)
 const editForm = reactive({ id: null, title: '', content: '', categoryId: null, tagIds: [] })
 
+const directoryContext = computed(() => {
+  if (route.query.context === 'category' && route.query.categoryId) {
+    return { type: 'category', categoryId: Number(route.query.categoryId) }
+  }
+  return { type: 'all' }
+})
+
+function handleNoteSelected(noteId) {
+  const currentQuery = { ...route.query }
+  router.replace({
+    name: 'NoteView',
+    params: { id: noteId },
+    query: currentQuery
+  })
+}
+
 onMounted(async () => {
   const id = Number(route.params.id)
   const [detail, cats, tagList] = await Promise.all([
@@ -178,6 +203,7 @@ onMounted(async () => {
     getCategoryList(),
     getTagList(),
   ])
+  console.log('后端返回的detail:', detail)
   note.value = detail
   categories.value = cats
   tags.value = tagList
@@ -187,7 +213,35 @@ onMounted(async () => {
 
 const wordCount = computed(() => note.value?.content?.replace(/<[^>]+>/g, '').length || 0)
 const readTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 300)))
-const renderedContent = computed(() => note.value?.content?.replace(/\n/g, '<br>') || '')
+const renderedContent = computed(() => {
+  if (!note.value?.content) return ''
+  let content = note.value.content
+
+  console.log('原始content:',JSON.stringify(content))
+
+  // ✅ 先解析图片（此时 \n 还是原始换行，正则能正常匹配整行）
+  content = content.replace(
+    /!\[(.*?)\]\(([\s\S]*?)\)/g,   // [\s\S]*? 允许 URL 跨行
+    (_, alt, url) => {
+      const cleanUrl = url.replace(/\s+/g, '')  // 去掉 URL 里的所有空白/换行
+      return `<img src="${cleanUrl}" alt="${alt}" class="note-image" style="width:60%;opacity:0.9;transition:all 0.3s ease;border-radius:8px;margin:10px 0;cursor:pointer;" />`
+    }
+  )
+
+  // ✅ 再解析普通链接
+  content = content.replace(
+    /\[(.*?)\]\(([\s\S]*?)\)/g,
+    (_, text, url) => {
+      const cleanUrl = url.replace(/\s+/g, '')
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;">${text}</a>`
+    }
+  )
+
+  // ✅ 最后才替换换行符
+  content = content.replace(/\n/g, '<br>')
+
+  return content
+})
 const imageAttachments = computed(() => attachments.value.filter(a => isImage(a.fileName)))
 const fileAttachments = computed(() => attachments.value.filter(a => !isImage(a.fileName)))
 
@@ -256,6 +310,7 @@ async function removeAttachment(att) {
 }
 
 async function save() {
+  console.log('保存的cotent:',editForm.content)
   if (!editForm.title.trim()) return ElMessage.warning('标题不能为空')
   saving.value = true
   try {
@@ -289,7 +344,7 @@ async function confirmDelete() {
   await ElMessageBox.confirm('确定删除这篇笔记吗？', '提示', { type: 'warning' })
   await deleteNote(note.value.id)
   ElMessage.success('已删除')
-  router.back()
+  router.replace({ name: 'Home', query: { refresh: true } })
 }
 
 async function toggleFavorite() {
@@ -302,23 +357,32 @@ async function toggleFavorite() {
 
 <style scoped>
 /* ===== 页面基础 ===== */
-.note-view {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 32px 24px 60px;
-  min-height: 100vh;
+.note-view-container {
   display: flex;
-  flex-direction: column;
+  min-height: 100vh;
   background: var(--surface);
   color: var(--text);
   font-family: 'Inter', 'PingFang SC', system-ui, sans-serif;
-  border-radius: 24px;
-  border: 1px solid var(--border);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
-  transition: background 0.3s, color 0.3s, border-color 0.3s;
 }
 
-/* ===== 顶部工具栏 ===== */
+.note-directory-panel {
+  width: 280px; /* 侧边栏宽度 */
+  flex-shrink: 0;
+  padding: 24px 16px;
+  border-right: 1px solid var(--border);
+  background: var(--surface2);
+  overflow-y: auto;
+}
+
+.note-view-main {
+  flex-grow: 1;
+  max-width: 760px; /* 保持内容区域最大宽度 */
+  margin: 0 auto;
+  padding: 32px 24px 60px;
+  display: flex;
+  flex-direction: column;
+}
+
 .note-view-header {
   display: flex;
   align-items: center;
@@ -334,7 +398,7 @@ async function toggleFavorite() {
   color: var(--text-dim);
   flex: 1;
 }
-.actions { display: flex; gap: 6px; }
+.actions { display: flex; gap: 8px; }
 
 .note-view-loading { padding: 40px 0; }
 
@@ -467,6 +531,13 @@ async function toggleFavorite() {
 }
 .content-editor::placeholder { color: var(--text-dim); }
 
+/* ===== 图片悬停效果 ===== */
+.note-image:hover {
+  width: 100%;
+  opacity: 1;
+  transform: scale(1.02);
+}
+
 /* ===== 附件区域 ===== */
 .attachments-section {
   margin-top: 26px;
@@ -501,7 +572,17 @@ async function toggleFavorite() {
   border: 1px solid var(--border);
   font-size: 13px;
 }
-.att-icon { color: var(--accent); flex-shrink: 0; }
+.attachment-item.capsule {
+  border-radius: 999px;
+  padding: 8px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+.attachment-item.capsule:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+.att-icon { color: rgba(210,240,160,0.98); flex-shrink: 0; }
 .att-name {
   flex: 1;
   overflow: hidden;
@@ -570,6 +651,12 @@ async function toggleFavorite() {
 .edit-footer {
   display: flex; justify-content: flex-end; gap: 8px;
   padding: 16px 0 0; flex-shrink: 0;
+}
+
+/* ===== 附件按钮静默设计 ===== */
+.attachment-button {
+  --el-button-text-color: var(--text-dim);
+  --el-button-hover-text-color: var(--text);
 }
 
 /* ===== Element Plus 暗色覆盖 ===== */

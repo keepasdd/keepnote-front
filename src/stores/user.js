@@ -13,7 +13,14 @@ export const useUserStore = defineStore('user', () => {
         token.value = data.token
         sessionStorage.setItem('token', data.token)
         userInfo.value = data.user
-        router.push('/')
+        // 检查是否是首次登录（没有昵称）
+        if (!data.user.nickname) {
+            // 首次登录，跳转到个人资料设置页面
+            router.push('/?showProfile=true')
+        } else {
+            // 非首次登录，跳转到首页
+            router.push('/')
+        }
     }
 
     async function register(username, password) {

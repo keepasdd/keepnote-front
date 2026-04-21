@@ -5,6 +5,8 @@
       <div class="logo-text">Keep<span>Note</span></div>
     </div>
 
+
+
     <!-- 搜索 -->
     <div class="search-wrap">
       <el-input
@@ -98,17 +100,16 @@
 
           <div class="profile-topbar">
             <div class="profile-topbar-logo">
-              <div class="nav-logo-mark">KN</div>
+              <div class="nav-logo-mark">KS</div>
               <span class="nav-logo-text">KeepNote</span>
             </div>
-            <button class="profile-close-btn" @click="settingsVisible = false">✕</button>
           </div>
 
           <div class="profile-body">
             <div class="profile-hero">
               <p class="profile-hero-label">ACCOUNT SETTINGS</p>
               <h2 class="profile-hero-title">个人资料</h2>
-              <p class="profile-hero-desc">管理你的头像、昵称与联系方式。</p>
+              <p class="profile-hero-desc">管理您的头像、昵称与联系方式</p>
 
               <div class="profile-avatar-display" @click="triggerFileInput" title="点击更换头像">
                 <img v-if="profileForm.avatar" :src="profileForm.avatar" class="profile-avatar-img" />
@@ -179,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { Search, Plus, Setting, Camera } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { addCategory } from '../api/category'
@@ -193,6 +194,7 @@ const props = defineProps({
   activeCategoryId: { type: Number, default: null },
   totalCount: { type: Number, default: 0 },
   favoriteCount: { type: Number, default: 0 },
+  showProfile: { type: Boolean, default: false },
 })
 const emit = defineEmits(['search', 'nav-change', 'category-change', 'category-added'])
 
@@ -245,6 +247,13 @@ const navItems = computed(() => [
   { key: 'all', label: '全部笔记', icon: 'HomeFilled', count: props.totalCount },
   { key: 'favorite', label: '收藏夹', icon: 'StarFilled', count: props.favoriteCount },
 ])
+
+// 监听showProfile参数，自动打开个人资料设置面板
+watch(() => props.showProfile, (newVal) => {
+  if (newVal) {
+    openProfile()
+  }
+}, { immediate: true })
 
 function openProfile() {
   initProfileForm()
@@ -323,6 +332,15 @@ async function submitCategory() {
   letter-spacing: 0.2px;
 }
 .logo-text span { color: var(--accent); }
+
+/* ===== 问候语 ===== */
+.greeting {
+  padding: 0 22px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+}
 
 /* ===== 搜索 ===== */
 .search-wrap { padding: 0 14px 14px; }
@@ -407,10 +425,16 @@ async function submitCategory() {
   transition: background 0.15s, color 0.15s;
 }
 .category-item:hover { background: var(--surface3); color: var(--text); }
-.category-item.active { color: var(--text); background: var(--surface2); }
+.category-item.active {
+  background: rgba(var(--accent-rgb),0.16);
+  color: var(--accent);
+}
 
 .category-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .count { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+.category-item.active .count {
+  color: rgba(var(--accent-rgb),0.95);
+}
 
 .add-btn { color: var(--accent); font-size: 12px; }
 .add-btn:hover { color: var(--accent-hover) !important; }
@@ -493,7 +517,7 @@ async function submitCategory() {
   box-shadow: none !important;
 }
 :deep(.el-input__inner) {
-  color: rgba(255,255,255,0.95) !important;
+  color: var(--text) !important;
   background: transparent !important;
 }
 :deep(.el-select__wrapper) {

@@ -7,13 +7,20 @@
         <div class="list-subtitle">共 {{ total }} 篇</div>
       </div>
       <div class="header-actions">
+        <el-button
+            :disabled="!activeNoteId"
+            :class="['btn-pin', { 'btn-unpin': activeNote?.isPinned }]"
+            @click="toggleActiveNotePin"
+        >
+          <el-icon><Top /></el-icon> {{ activeNote?.isPinned ? '取消置顶' : '置顶' }}
+        </el-button>
         <el-button class="btn-new-tag" @click="openTagDialog(null)">
           <el-icon><PriceTag /></el-icon> 新建标签
         </el-button>
         <el-button
-          v-if="currentCategory"
-          class="btn-delete-category"
-          @click="openDeleteCategoryDialog"
+            v-if="currentCategory"
+            class="btn-delete-category"
+            @click="openDeleteCategoryDialog"
         >
           <el-icon><Delete /></el-icon> 删除分类
         </el-button>
@@ -39,17 +46,17 @@
         <!-- 父标签行 -->
         <div class="tag-row-wrap">
           <span
-            class="tag-pill"
-            :class="{ active: activeTagId === tag.id }"
-            :style="tagPillStyle(tag)"
-            @click="toggleTag(tag.id)"
+              class="tag-pill"
+              :class="{ active: activeTagId === tag.id }"
+              :style="tagPillStyle(tag)"
+              @click="toggleTag(tag.id)"
           >
             <!-- 展开/折叠箭头（仅有子标签时显示） -->
             <span
-              v-if="tag.children && tag.children.length"
-              class="expand-arrow"
-              :class="{ expanded: expandedTags.has(tag.id) }"
-              @click.stop="toggleExpand(tag.id)"
+                v-if="tag.children && tag.children.length"
+                class="expand-arrow"
+                :class="{ expanded: expandedTags.has(tag.id) }"
+                @click.stop="toggleExpand(tag.id)"
             >▶</span>
             <span class="tag-dot" :style="tagDotStyle(tag, activeTagId === tag.id)"></span>
             {{ tag.name }}
@@ -71,15 +78,15 @@
         <!-- 子标签（折叠/展开） -->
         <template v-if="tag.children && tag.children.length && expandedTags.has(tag.id)">
           <div
-            v-for="child in tag.children"
-            :key="child.id"
-            class="tag-row-wrap child-row"
+              v-for="child in tag.children"
+              :key="child.id"
+              class="tag-row-wrap child-row"
           >
             <span
-              class="tag-pill child-pill"
-              :class="{ active: activeTagId === child.id }"
-              :style="tagPillStyle(child)"
-              @click="toggleTag(child.id)"
+                class="tag-pill child-pill"
+                :class="{ active: activeTagId === child.id }"
+                :style="tagPillStyle(child)"
+                @click="toggleTag(child.id)"
             >
               <span class="tag-dot" :style="tagDotStyle(child, activeTagId === child.id)"></span>
               {{ child.name }}
@@ -108,11 +115,21 @@
           class="note-card"
           :class="{ active: activeNoteId === note.id }"
           @click="emit('select', note.id)"
-          @dblclick="router.push(`/note/${note.id}`)"
+          @dblclick="emit('open-note', note.id)"
       >
         <div class="card-header">
-          <div class="card-title">{{ note.title }}</div>
-          <div class="card-date">{{ note.updatedAt }}</div>
+          <div class="card-title">
+            <span v-if="note.isPinned" class="pin-indicator">📌</span>
+            {{ note.title }}
+          </div>
+          <div class="card-actions">
+            <el-tooltip :content="note.isPinned ? '取消置顶' : '置顶'">
+              <el-icon class="pin-icon" @click.stop="togglePin(note)">
+                <Top />
+              </el-icon>
+            </el-tooltip>
+            <div class="card-date">{{ note.updatedAt }}</div>
+          </div>
         </div>
         <div class="card-preview">{{ note.content?.replace(/<[^>]+>/g, '').slice(0, 80) }}…</div>
         <div class="card-footer">
@@ -147,16 +164,16 @@
     <el-form :model="tagForm" label-width="70px" @submit.prevent>
       <el-form-item label="父标签">
         <el-select
-          v-model="tagForm.parentId"
-          placeholder="不选则为顶级标签"
-          clearable
-          style="width:100%"
+            v-model="tagForm.parentId"
+            placeholder="不选则为顶级标签"
+            clearable
+            style="width:100%"
         >
           <el-option
-            v-for="t in flatTags"
-            :key="t.id"
-            :label="t._label"
-            :value="t.id"
+              v-for="t in flatTags"
+              :key="t.id"
+              :label="t._label"
+              :value="t.id"
           />
         </el-select>
       </el-form-item>
@@ -166,18 +183,18 @@
       <el-form-item label="颜色">
         <div class="color-options">
           <span
-            v-for="c in colorPresets" :key="c"
-            class="color-dot"
-            :style="{ background: c, outline: tagForm.color === c ? `2px solid ${c}` : 'none' }"
-            @click="tagForm.color = c"
+              v-for="c in colorPresets" :key="c"
+              class="color-dot"
+              :style="{ background: c, outline: tagForm.color === c ? `2px solid ${c}` : 'none' }"
+              @click="tagForm.color = c"
           />
           <el-color-picker v-model="tagForm.color" size="small" />
         </div>
       </el-form-item>
       <el-form-item label="预览">
         <span
-          class="tag-pill"
-          :style="{ color: tagForm.color, background: tagForm.color + '22', borderColor: tagForm.color }"
+            class="tag-pill"
+            :style="{ color: tagForm.color, background: tagForm.color + '22', borderColor: tagForm.color }"
         >
           <span class="tag-dot" :style="{ background: tagForm.color, borderColor: tagForm.color }"></span>
           {{ tagForm.name || '标签名称' }}
@@ -199,18 +216,18 @@
       <el-form-item label="颜色">
         <div class="color-options">
           <span
-            v-for="c in colorPresets" :key="c"
-            class="color-dot"
-            :style="{ background: c, outline: editForm.color === c ? `2px solid ${c}` : 'none' }"
-            @click="editForm.color = c"
+              v-for="c in colorPresets" :key="c"
+              class="color-dot"
+              :style="{ background: c, outline: editForm.color === c ? `2px solid ${c}` : 'none' }"
+              @click="editForm.color = c"
           />
           <el-color-picker v-model="editForm.color" size="small" />
         </div>
       </el-form-item>
       <el-form-item label="预览">
         <span
-          class="tag-pill"
-          :style="{ color: editForm.color, background: editForm.color + '22', borderColor: editForm.color }"
+            class="tag-pill"
+            :style="{ color: editForm.color, background: editForm.color + '22', borderColor: editForm.color }"
         >
           <span class="tag-dot" :style="{ background: editForm.color, borderColor: editForm.color }"></span>
           {{ editForm.name || '标签名称' }}
@@ -238,15 +255,15 @@
       <template v-if="deleteCategoryForm.mode === 'existing'">
         <el-form-item label="目标分类">
           <el-select
-            v-model="deleteCategoryForm.targetCategoryId"
-            placeholder="请选择目标分类"
-            style="width: 100%"
+              v-model="deleteCategoryForm.targetCategoryId"
+              placeholder="请选择目标分类"
+              style="width: 100%"
           >
             <el-option
-              v-for="category in availableTargetCategories"
-              :key="category.id"
-              :label="category.name"
-              :value="category.id"
+                v-for="category in availableTargetCategories"
+                :key="category.id"
+                :label="category.name"
+                :value="category.id"
             />
           </el-select>
         </el-form-item>
@@ -255,19 +272,19 @@
       <template v-else>
         <el-form-item label="分类名称">
           <el-input
-            v-model="deleteCategoryForm.newCategoryName"
-            maxlength="20"
-            show-word-limit
-            placeholder="请输入新分类名称"
+              v-model="deleteCategoryForm.newCategoryName"
+              maxlength="20"
+              show-word-limit
+              placeholder="请输入新分类名称"
           />
         </el-form-item>
         <el-form-item label="分类颜色">
           <div class="color-options">
             <span
-              v-for="c in categoryColorPresets" :key="c"
-              class="color-dot"
-              :style="{ background: c, outline: deleteCategoryForm.newCategoryColor === c ? `2px solid ${c}` : 'none' }"
-              @click="deleteCategoryForm.newCategoryColor = c"
+                v-for="c in categoryColorPresets" :key="c"
+                class="color-dot"
+                :style="{ background: c, outline: deleteCategoryForm.newCategoryColor === c ? `2px solid ${c}` : 'none' }"
+                @click="deleteCategoryForm.newCategoryColor = c"
             />
             <el-color-picker v-model="deleteCategoryForm.newCategoryColor" size="small" />
           </div>
@@ -286,7 +303,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, PriceTag, Edit, Delete } from '@element-plus/icons-vue'
+import { Plus, PriceTag, Edit, Delete, Top } from '@element-plus/icons-vue'
 import { addTag, updateTag, deleteTag } from '../api/tag'
 import { addCategory, deleteCategory, getCategoryList } from '../api/category'
 import { getNoteList, updateNote } from '../api/note'
@@ -305,7 +322,7 @@ const props = defineProps({
   activeCategoryId: { type: Number, default: null },
   title: { type: String, default: '全部笔记' },
 })
-const emit = defineEmits(['select', 'new-note', 'filter-change', 'tag-added', 'category-deleted'])
+const emit = defineEmits(['select', 'new-note', 'filter-change', 'tag-added', 'category-deleted', 'open-note'])
 
 const dateFilter = ref('')
 const activeTagId = ref(null)
@@ -354,11 +371,15 @@ const flatTags = computed(() => {
 })
 
 const currentCategory = computed(() =>
-  props.categories.find(category => category.id === props.activeCategoryId) || null,
+    props.categories.find(category => category.id === props.activeCategoryId) || null,
+)
+
+const activeNote = computed(() =>
+    props.notes.find(note => note.id === props.activeNoteId) || null,
 )
 
 const availableTargetCategories = computed(() =>
-  props.categories.filter(category => category.id !== props.activeCategoryId),
+    props.categories.filter(category => category.id !== props.activeCategoryId),
 )
 
 // ---- 新建标签 ----
@@ -376,6 +397,10 @@ function openTagDialog(parentId = null) {
 async function submitTag() {
   if (!tagForm.value.name.trim()) {
     ElMessage.warning('请输入标签名称')
+    return
+  }
+  if (tagForm.value.name.trim().length > 12) {
+    ElMessage.warning('标签名称不能超过12个字符')
     return
   }
   tagSaving.value = true
@@ -410,6 +435,10 @@ async function submitEdit() {
     ElMessage.warning('请输入标签名称')
     return
   }
+  if (editForm.value.name.trim().length > 12) {
+    ElMessage.warning('标签名称不能超过12个字符')
+    return
+  }
   editSaving.value = true
   try {
     await updateTag({
@@ -431,8 +460,8 @@ async function submitEdit() {
 async function removeTag(tag) {
   const hasChildren = tag.children && tag.children.length > 0
   const msg = hasChildren
-    ? `确定删除标签「${tag.name}」及其 ${tag.children.length} 个子标签吗？`
-    : `确定删除标签「${tag.name}」吗？`
+      ? `确定删除标签「${tag.name}」及其 ${tag.children.length} 个子标签吗？`
+      : `确定删除标签「${tag.name}」吗？`
   try {
     await ElMessageBox.confirm(msg, '删除标签', { type: 'warning' })
     await deleteTag(tag.id)
@@ -504,15 +533,15 @@ async function openDeleteCategoryDialog() {
   if (!category) return
 
   const noteCount = typeof category.noteCount === 'number'
-    ? category.noteCount
-    : (await getNoteList({ page: 1, pageSize: 1, categoryId: category.id })).total || 0
+      ? category.noteCount
+      : (await getNoteList({ page: 1, pageSize: 1, categoryId: category.id })).total || 0
 
   if (noteCount === 0) {
     try {
       await ElMessageBox.confirm(
-        `分类「${category.name}」下暂无笔记，确定直接删除吗？`,
-        '删除分类',
-        { type: 'warning' },
+          `分类「${category.name}」下暂无笔记，确定直接删除吗？`,
+          '删除分类',
+          { type: 'warning' },
       )
       await deleteCategoryOnly(category)
     } catch {
@@ -552,8 +581,8 @@ async function submitDeleteCategory() {
       if (!targetCategoryId) {
         const latestCategories = await getCategoryList()
         const matchedCategory = latestCategories
-          .filter(item => item.id !== category.id)
-          .find(item => item.name === name && item.color === deleteCategoryForm.value.newCategoryColor)
+            .filter(item => item.id !== category.id)
+            .find(item => item.name === name && item.color === deleteCategoryForm.value.newCategoryColor)
         targetCategoryId = matchedCategory?.id ?? null
       }
       if (!targetCategoryId) {
@@ -570,7 +599,7 @@ async function submitDeleteCategory() {
   try {
     const notesInCategory = await fetchCategoryNotes(category.id)
     await Promise.all(
-      notesInCategory.map(note => updateNote({ id: note.id, categoryId: targetCategoryId })),
+        notesInCategory.map(note => updateNote({ id: note.id, categoryId: targetCategoryId })),
     )
     await deleteCategory(category.id)
     ElMessage.success(`分类「${category.name}」已删除，笔记已转移`)
@@ -608,6 +637,28 @@ function emitFilter() {
     dateRange: dateFilter.value,
     tagId: activeTagId.value,
   })
+}
+
+async function togglePin(note) {
+  try {
+    await updateNote({ id: note.id, isPinned: note.isPinned ? 0 : 1 })
+    note.isPinned = !note.isPinned
+    ElMessage.success(note.isPinned ? '已置顶' : '已取消置顶')
+  } catch (err) {
+    ElMessage.error(err.message || '操作失败')
+  }
+}
+
+async function toggleActiveNotePin() {
+  if (!activeNote.value) return
+  
+  try {
+    await updateNote({ id: activeNote.value.id, isPinned: activeNote.value.isPinned ? 0 : 1 })
+    activeNote.value.isPinned = !activeNote.value.isPinned
+    ElMessage.success(activeNote.value.isPinned ? '已置顶' : '已取消置顶')
+  } catch (err) {
+    ElMessage.error(err.message || '操作失败')
+  }
 }
 </script>
 
@@ -687,6 +738,39 @@ function emitFilter() {
   color: var(--text) !important;
 }
 
+/* 置顶按钮 */
+.btn-pin {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important; font-weight: 500 !important;
+  border-radius: 5px !important;
+  transition: all 0.2s !important;
+}
+
+.btn-pin:hover:not(:disabled) {
+  border-color: var(--border-active) !important;
+  color: var(--accent) !important;
+  background: var(--surface3) !important;
+}
+
+.btn-pin:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* 取消置顶按钮 */
+.btn-unpin {
+  border: 1px solid rgba(231,76,60,0.35) !important;
+  color: rgba(231,76,60,0.95) !important;
+}
+
+.btn-unpin:hover:not(:disabled) {
+  border-color: rgba(231,76,60,0.60) !important;
+  color: rgba(231,76,60,1) !important;
+  background: var(--surface3) !important;
+}
+
 /* ===== 颜色点 ===== */
 .color-options { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .color-dot {
@@ -757,7 +841,7 @@ function emitFilter() {
 .expand-arrow.expanded { transform: rotate(90deg); }
 
 .tag-actions {
-  display: flex; gap: 2px; opacity: 0;
+  display: flex; gap: 2px; opacity: 1;
   transition: opacity 0.15s;
 }
 .tag-action-icon {
@@ -797,6 +881,57 @@ function emitFilter() {
   background: var(--surface2);
 }
 .note-card.active::before { background: rgba(180,210,130,0.85); }
+
+/* 置顶笔记样式 */
+.note-card:has(.pin-indicator) {
+  background: var(--surface3);
+  border-color: var(--border-active);
+}
+.note-card:has(.pin-indicator) .card-title {
+  color: var(--text);
+  font-weight: 600;
+}
+.note-card:has(.pin-indicator) .card-preview {
+  color: var(--text);
+}
+
+/* 置顶指示器样式 */
+.pin-indicator {
+  margin-right: 6px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+/* 置顶按钮样式 */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pin-icon {
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: color 0.2s;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.pin-icon:hover {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb),0.1);
+}
+
+/* 置顶状态的图标样式 */
+.note-card:has(.pin-indicator) .pin-icon {
+  color: #e74c3c;
+}
+
+.note-card:has(.pin-indicator) .pin-icon:hover {
+  color: #c0392b;
+  background: rgba(231,76,60,0.1);
+}
 
 .card-header {
   display: flex; align-items: flex-start;
@@ -854,5 +989,3 @@ function emitFilter() {
   color: var(--text) !important;
 }
 </style>
-
-

@@ -405,7 +405,7 @@ async function submit() {
 
 .login-form :deep(.el-input__inner) {
   background: transparent !important;
-  color: rgba(255, 255, 255, 0.92) !important;
+  color: var(--text) !important;
   font-size: 14px !important;
   letter-spacing: 0.2px;
   caret-color: rgba(180, 210, 130, 0.9);

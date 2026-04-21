@@ -126,6 +126,7 @@ export function applyTheme(theme) {
     root.style.setProperty('--code-bg', 'rgba(0,0,0,0.04)')
     root.style.setProperty('--social-bg', 'rgba(0,0,0,0.05)')
     root.style.colorScheme = 'light'
+    root.classList.remove('dark')
   } else if (resolved.bgId === BG_PRESETS.black.id) {
     const bg = BG_PRESETS.black.bg
     root.style.setProperty('--bg', bg)
@@ -142,6 +143,7 @@ export function applyTheme(theme) {
     root.style.setProperty('--code-bg', 'rgba(255,255,255,0.05)')
     root.style.setProperty('--social-bg', 'rgba(255,255,255,0.06)')
     root.style.colorScheme = 'dark'
+    root.classList.add('dark')
   } else {
     // tint：把 accent 混到黑色，形成深色背景
     const bgRgb = mixRgb(accentRgb, { r: 0, g: 0, b: 0 }, 0.78)
@@ -159,6 +161,7 @@ export function applyTheme(theme) {
     root.style.setProperty('--code-bg', 'rgba(255,255,255,0.05)')
     root.style.setProperty('--social-bg', 'rgba(255,255,255,0.06)')
     root.style.colorScheme = 'dark'
+    root.classList.add('dark')
   }
 
   root.style.setProperty('--accent', resolved.accent)
@@ -169,7 +172,31 @@ export function applyTheme(theme) {
   root.style.setProperty('--accent-rgb', asRgbVar(accentRgb))
   root.style.setProperty('--accent-soft-rgb', asRgbVar(softRgb))
   root.style.setProperty('--accent-contrast-rgb', asRgbVar(contrastRgb))
+  const isDark = resolved.bgId !== BG_PRESETS.white.id
 
+  if (isDark) {
+    // 暗色：让 Element Plus 用深色背景、白色文字
+    root.style.setProperty('--el-bg-color', '#1e2520')
+    root.style.setProperty('--el-bg-color-overlay', '#273029')
+    root.style.setProperty('--el-text-color-primary', 'rgba(255,255,255,0.92)')
+    root.style.setProperty('--el-text-color-regular', 'rgba(255,255,255,0.75)')
+    root.style.setProperty('--el-text-color-secondary', 'rgba(255,255,255,0.55)')
+    root.style.setProperty('--el-border-color', 'rgba(255,255,255,0.15)')
+    root.style.setProperty('--el-border-color-light', 'rgba(255,255,255,0.10)')
+    root.style.setProperty('--el-fill-color-blank', '#1e2520')
+    root.style.setProperty('--el-mask-color', 'rgba(0,0,0,0.7)')
+  } else {
+    // 亮色：还原 Element Plus 默认值
+    root.style.setProperty('--el-bg-color', '#ffffff')
+    root.style.setProperty('--el-bg-color-overlay', '#ffffff')
+    root.style.setProperty('--el-text-color-primary', '#303133')
+    root.style.setProperty('--el-text-color-regular', '#606266')
+    root.style.setProperty('--el-text-color-secondary', '#909399')
+    root.style.setProperty('--el-border-color', '#dcdfe6')
+    root.style.setProperty('--el-border-color-light', '#e4e7ed')
+    root.style.setProperty('--el-fill-color-blank', '#ffffff')
+    root.style.setProperty('--el-mask-color', 'rgba(0,0,0,0.5)')
+  }
   return resolved
 }
 
