@@ -204,7 +204,7 @@ async function submit() {
   justify-content: center;
   font-size: 10px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-h);
   letter-spacing: 0.5px;
 }
 
@@ -282,12 +282,13 @@ async function submit() {
 .login-card {
   width: 380px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 4px;
   padding: 36px 32px 28px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .card-header {
@@ -312,7 +313,7 @@ async function submit() {
   justify-content: center;
   font-size: 10px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-h);
   letter-spacing: 0.5px;
 }
 
@@ -444,7 +445,7 @@ async function submit() {
 .submit-btn:hover:not(:disabled) {
   background: rgba(180, 210, 130, 0.25);
   border-color: rgba(180, 210, 130, 0.65);
-  color: #fff;
+  color: var(--text-h);
 }
 
 .submit-btn:disabled {

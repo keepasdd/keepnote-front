@@ -536,6 +536,5 @@ function formatSize(size) {
   border-color: rgba(var(--accent-rgb),0.55) !important;
   box-shadow: none !important;
 }
-:deep(.el-select__placeholder) { color: rgba(255,255,255,0.40) !important; }
-::deep(.el-select__placeholder) { color: var(--text-dim) !important; }
+:deep(.el-select__placeholder) { color: var(--text-dim) !important; }
 </style>

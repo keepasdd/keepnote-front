@@ -253,4 +253,9 @@ function toggleFavorite() { emit('toggle-favorite', props.note.id) }
   font-family: var(--font-body); font-size: 14px;
   color: var(--text-muted); line-height: 1.9;
 }
+
+:deep(.el-select-dropdown__item) {
+  color: #333 !important;
+}
 </style>
+

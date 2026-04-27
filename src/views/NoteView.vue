@@ -263,6 +263,14 @@ function startEdit() {
   editForm.categoryId = note.value.categoryId || null
   editForm.tagIds = note.value.tags?.map(t => t.id) || []
   isEditing.value = true
+  
+  // 为编辑器添加粘贴事件监听器
+  setTimeout(() => {
+    const textarea = editorRef.value
+    if (textarea) {
+      textarea.addEventListener('paste', handlePaste)
+    }
+  }, 100)
 }
 
 async function handleUpload(file) {
@@ -270,13 +278,45 @@ async function handleUpload(file) {
   try {
     const result = await uploadAttachment(editForm.id, file)
     attachments.value.push(result)
-    ElMessage.success(`${file.name} 上传成功`)
+    return result
   } catch {
     // error already shown by request interceptor
   } finally {
     uploading.value = false
   }
   return false // prevent el-upload default behavior
+}
+
+async function handlePaste(e) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') === 0) {
+      e.preventDefault()
+      const file = items[i].getAsFile()
+      if (file) {
+        try {
+          const result = await handleUpload(file)
+          if (result) {
+            // 上传成功后插入图片引用到编辑器
+            const textarea = editorRef.value
+            const ref = `![${result.fileName}](${result.url})`
+            if (textarea) {
+              const start = textarea.selectionStart
+              const before = editForm.content.slice(0, start)
+              const after = editForm.content.slice(start)
+              editForm.content = before + '\n' + ref + '\n' + after
+              ElMessage.success('图片粘贴并上传成功')
+            }
+          }
+        } catch {
+          ElMessage.error('图片粘贴失败')
+        }
+      }
+      break
+    }
+  }
 }
 
 function insertAttachment(att) {
@@ -674,7 +714,7 @@ async function toggleFavorite() {
   --el-button-text-color: rgba(210,240,160,0.98);
   --el-button-hover-bg-color: rgba(180,210,130,0.32);
   --el-button-hover-border-color: rgba(180,210,130,0.75);
-  --el-button-hover-text-color: #fff;
+  --el-button-hover-text-color: var(--text-h);
 }
 :deep(.el-select__wrapper) {
   background: var(--surface3) !important;

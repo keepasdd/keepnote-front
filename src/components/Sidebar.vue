@@ -5,8 +5,6 @@
       <div class="logo-text">Keep<span>Note</span></div>
     </div>
 
-
-
     <!-- 搜索 -->
     <div class="search-wrap">
       <el-input
@@ -100,16 +98,17 @@
 
           <div class="profile-topbar">
             <div class="profile-topbar-logo">
-              <div class="nav-logo-mark">KS</div>
+              <div class="nav-logo-mark">KN</div>
               <span class="nav-logo-text">KeepNote</span>
             </div>
+            <button class="profile-close-btn" @click="settingsVisible = false">✕</button>
           </div>
 
           <div class="profile-body">
             <div class="profile-hero">
               <p class="profile-hero-label">ACCOUNT SETTINGS</p>
               <h2 class="profile-hero-title">个人资料</h2>
-              <p class="profile-hero-desc">管理您的头像、昵称与联系方式</p>
+              <p class="profile-hero-desc">管理你的头像、昵称与联系方式。</p>
 
               <div class="profile-avatar-display" @click="triggerFileInput" title="点击更换头像">
                 <img v-if="profileForm.avatar" :src="profileForm.avatar" class="profile-avatar-img" />
@@ -180,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { Search, Plus, Setting, Camera } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { addCategory } from '../api/category'
@@ -194,7 +193,6 @@ const props = defineProps({
   activeCategoryId: { type: Number, default: null },
   totalCount: { type: Number, default: 0 },
   favoriteCount: { type: Number, default: 0 },
-  showProfile: { type: Boolean, default: false },
 })
 const emit = defineEmits(['search', 'nav-change', 'category-change', 'category-added'])
 
@@ -247,13 +245,6 @@ const navItems = computed(() => [
   { key: 'all', label: '全部笔记', icon: 'HomeFilled', count: props.totalCount },
   { key: 'favorite', label: '收藏夹', icon: 'StarFilled', count: props.favoriteCount },
 ])
-
-// 监听showProfile参数，自动打开个人资料设置面板
-watch(() => props.showProfile, (newVal) => {
-  if (newVal) {
-    openProfile()
-  }
-}, { immediate: true })
 
 function openProfile() {
   initProfileForm()
@@ -332,15 +323,6 @@ async function submitCategory() {
   letter-spacing: 0.2px;
 }
 .logo-text span { color: var(--accent); }
-
-/* ===== 问候语 ===== */
-.greeting {
-  padding: 0 22px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  line-height: 1.4;
-}
 
 /* ===== 搜索 ===== */
 .search-wrap { padding: 0 14px 14px; }
@@ -453,7 +435,7 @@ async function submitCategory() {
   background: linear-gradient(135deg, rgba(var(--accent-rgb),0.7), rgba(var(--accent-rgb),0.95));
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0;
+  font-size: 13px; font-weight: 600; color: var(--text-h); flex-shrink: 0;
   overflow: hidden;
 }
 .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
@@ -477,7 +459,7 @@ async function submitCategory() {
   background: linear-gradient(135deg, rgba(var(--accent-rgb),0.5), rgba(var(--accent-rgb),0.9));
   border: 1px solid rgba(255,255,255,0.15);
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 600; color: #fff; overflow: hidden;
+  font-size: 20px; font-weight: 600; color: var(--text-h); overflow: hidden;
   position: relative; cursor: pointer;
 }
 .avatar-preview:hover .avatar-overlay { opacity: 1; }
@@ -485,9 +467,9 @@ async function submitCategory() {
   position: absolute; inset: 0; border-radius: 50%;
   background: rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 18px; opacity: 0; transition: opacity 0.2s;
+  color: var(--text-h); font-size: 18px; opacity: 0; transition: opacity 0.2s;
 }
-.avatar-placeholder { font-size: 20px; font-weight: 600; color: #fff; }
+.avatar-placeholder { font-size: 20px; font-weight: 600; color: var(--text-h); }
 .avatar-actions { display: flex; flex-direction: column; gap: 6px; }
 .avatar-divider { font-size: 11px; color: rgba(255,255,255,0.48); text-align: center; }
 
@@ -671,7 +653,7 @@ async function submitCategory() {
   width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
 }
 .profile-avatar-char {
-  font-size: 32px; font-weight: 700; color: #fff;
+  font-size: 32px; font-weight: 700; color: var(--text-h);
 }
 .profile-avatar-overlay {
   position: absolute; inset: 0; border-radius: 50%;
@@ -679,7 +661,7 @@ async function submitCategory() {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 4px;
-  color: #fff; font-size: 11px; font-weight: 500;
+  color: var(--text-h); font-size: 11px; font-weight: 500;
   opacity: 0; transition: opacity 0.2s;
   letter-spacing: 0.3px;
 }
@@ -747,7 +729,7 @@ async function submitCategory() {
 .profile-save-btn:hover:not(:disabled) {
   background: rgba(var(--accent-rgb),0.24);
   border-color: rgba(var(--accent-rgb),0.62);
-  color: #fff;
+  color: var(--text-h);
 }
 .profile-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .loading-dot { letter-spacing: 3px; }

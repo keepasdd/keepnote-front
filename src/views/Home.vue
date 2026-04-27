@@ -112,6 +112,7 @@ async function loadCategories() {
 
 async function loadTags() {
   tags.value = await getTagList()
+  console.log('tags:', tags.value)  // 加这行
 }
 
 async function loadFavoriteCount() {
