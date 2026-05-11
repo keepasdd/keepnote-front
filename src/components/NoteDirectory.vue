@@ -34,6 +34,7 @@
           @click="selectNote(note.id)"
       >
         <span class="item-index">{{ String(index + 1).padStart(2, '0') }}</span>
+        <span v-if="note.isPinned" class="pin-icon" title="已置顶">📌</span>
         <span class="item-title">{{ note.title }}</span>
         <span class="item-arrow" v-if="note.id === currentNoteId">›</span>
       </div>
@@ -239,6 +240,12 @@ watch(() => props.context, fetchNotes, { immediate: true, deep: true })
 .item-arrow {
   font-size: 16px;
   color: rgba(var(--accent-rgb), 0.7);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.pin-icon {
+  font-size: 12px;
   flex-shrink: 0;
   line-height: 1;
 }

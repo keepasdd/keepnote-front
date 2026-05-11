@@ -36,7 +36,7 @@
       </div>
       <div class="detail-divider" />
       <div class="detail-body">
-        <textarea v-model="editForm.content" class="content-editor" placeholder="开始记录你的想法…" />
+        <textarea v-model="editForm.content" class="content-editor" placeholder="开始记录你的想法…" @paste="handlePaste" />
 
         <!-- 文件上传区域 -->
         <div class="attachment-area">
@@ -62,11 +62,8 @@
 
     <!-- 查看模式 -->
     <template v-else>
-      <div class="detail-toolbar" :class="{ 'note-is-pinned': note.isPinned }">
+      <div class="detail-toolbar">
         <div class="actions">
-          <el-tooltip :content="note.isPinned ? '取消置顶' : '置顶'">
-            <el-button :icon="Top" :type="note.isPinned ? 'danger' : 'default'" :plain="!note.isPinned" circle size="small" @click="togglePin" />
-          </el-tooltip>
           <el-tooltip content="收藏">
             <el-button :icon="note.isFavorite ? StarFilled : Star" circle size="small" @click="toggleFavorite" />
           </el-tooltip>
@@ -138,8 +135,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, reactive } from 'vue'
-import { Edit, Delete, Star, StarFilled, Calendar, Document, Upload, Download, Close, Top } from '@element-plus/icons-vue'
+import { ref, computed, watch, reactive, nextTick } from 'vue'
+import { Edit, Delete, Star, StarFilled, Calendar, Document, Upload, Download, Close } from '@element-plus/icons-vue'
 import { addNote, updateNote, deleteNote, uploadAttachment, deleteAttachment } from '../api/note'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -196,7 +193,22 @@ watch(() => props.isEditing, (val) => {
 
 const wordCount = computed(() => (props.note?.content?.replace(/<[^>]+>/g, '') || '').length)
 const readTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 300)))
-const renderedContent = computed(() => props.note?.content?.replace(/\n/g, '<br>') || '')
+const renderedContent = computed(() => {
+  if (!props.note?.content) return ''
+  let content = props.note.content
+
+  content = content.replace(
+    /!\[(.*?)\]\(([\s\S]*?)\)/g,
+    (_, alt, url) => `<img src="${url.replace(/\s+/g, '')}" alt="${alt}" class="note-image" />`
+  )
+
+  content = content.replace(
+    /\[(.*?)\]\(([\s\S]*?)\)/g,
+    (_, text, url) => `<a href="${url.replace(/\s+/g, '')}" target="_blank" rel="noopener">${text}</a>`
+  )
+
+  return content.replace(/\n/g, '<br>')
+})
 
 function isImage(fileName) {
   return /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName || '')
@@ -217,17 +229,20 @@ function startEdit() {
 
 function cancelEdit() { emit('cancel-edit') }
 
-async function save() {
+async function save(options = {}) {
   if (!editForm.title.trim()) return ElMessage.warning('标题不能为空')
   saving.value = true
   try {
     if (editForm.id) {
       await updateNote(editForm)
     } else {
-      await addNote(editForm)
+      const id = await addNote(editForm)
+      editForm.id = id
     }
-    ElMessage.success('保存成功')
-    emit('saved', editForm)
+    if (!options.silent) {
+      ElMessage.success('保存成功')
+    }
+    emit('saved', { ...editForm, _editMode: options.silent || undefined })
   } finally {
     saving.value = false
   }
@@ -242,17 +257,45 @@ async function confirmDelete() {
 
 function toggleFavorite() { emit('toggle-favorite', props.note.id) }
 
-async function togglePin() {
-  try {
-    await updateNote({ id: props.note.id, isPinned: props.note.isPinned ? 0 : 1 })
-    props.note.isPinned = !props.note.isPinned
-    ElMessage.success(props.note.isPinned ? '已置顶' : '已取消置顶')
-  } catch (err) {
-    ElMessage.error(err.message || '操作失败')
+function noopUpload() {}
+
+function getFileExtensionByMime(mimeType) {
+  const typeMap = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
   }
+  return typeMap[mimeType] || 'png'
 }
 
-function noopUpload() {}
+function createPastedImageFile(blob) {
+  const extension = getFileExtensionByMime(blob.type)
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14)
+  return new File([blob], `pasted-image-${stamp}.${extension}`, { type: blob.type || 'image/png' })
+}
+
+function appendAttachmentToNote(attachment) {
+  if (!props.note) return
+  if (!props.note.attachments) props.note.attachments = []
+  props.note.attachments.push(attachment)
+}
+
+function insertTextAtCursor(textarea, content) {
+  const start = textarea.selectionStart
+  const end = textarea.selectionEnd
+  const before = editForm.content.substring(0, start)
+  const after = editForm.content.substring(end)
+  editForm.content = before + content + after
+  return start + content.length
+}
+
+async function ensureEditingNoteId() {
+  if (editForm.id) return editForm.id
+  await save({ silent: true })
+  return editForm.id
+}
 
 function triggerFileSelect() {
   if (!viewerFileInput.value) return
@@ -314,6 +357,47 @@ async function submitUploads() {
     ElMessage.error(err.message || '上传失败')
   } finally {
     uploading.value = false
+  }
+}
+
+async function handlePaste(e) {
+  const items = e.clipboardData?.items
+  if (!items) return
+  const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'))
+  if (!imageItems.length) return
+
+  e.preventDefault()
+
+  let noteId = editForm.id
+  if (!noteId) {
+    noteId = await ensureEditingNoteId()
+    if (!noteId) return
+  }
+
+  for (const item of items) {
+    if (!item.type.startsWith('image/')) continue
+    const blob = item.getAsFile()
+    if (!blob) continue
+    const file = createPastedImageFile(blob)
+    if (!beforeUpload(file)) continue
+
+    try {
+      uploading.value = true
+      const resp = await uploadAttachment(noteId, file)
+      const attachment = resp?.attachment || resp
+      appendAttachmentToNote(attachment)
+      const imgTag = `![${attachment.fileName || file.name}](${attachment.url})`
+      const textarea = e.target
+      const cursorPos = insertTextAtCursor(textarea, imgTag)
+      await nextTick()
+      textarea.setSelectionRange(cursorPos, cursorPos)
+      textarea.focus()
+      ElMessage.success('图片已上传并插入笔记')
+    } catch (err) {
+      ElMessage.error('图片上传失败')
+    } finally {
+      uploading.value = false
+    }
   }
 }
 
@@ -388,17 +472,6 @@ function formatSize(size) {
   color: var(--text); line-height: 1.35; margin-bottom: 10px;
   letter-spacing: -0.2px;
 }
-/* 置顶笔记的样式 */
-.detail-panel:has(.note-is-pinned) {
-  background: var(--surface2);
-}
-.detail-panel:has(.note-is-pinned) .detail-title {
-  color: var(--text);
-  font-weight: 700;
-}
-.detail-panel:has(.note-is-pinned) .detail-content {
-  color: var(--text);
-}
 .title-input {
   width: 100%; background: none; border: none; outline: none;
   font-size: 20px; font-weight: 600;
@@ -444,6 +517,15 @@ function formatSize(size) {
 
 .detail-content {
   font-size: 14px; color: var(--text-muted); line-height: 1.9;
+}
+.detail-content :deep(img) {
+  max-width: 100%;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+.detail-content :deep(a) {
+  color: var(--accent);
+  text-decoration: underline;
 }
 .content-editor {
   width: 100%; height: 100%; min-height: 400px;
@@ -536,5 +618,6 @@ function formatSize(size) {
   border-color: rgba(var(--accent-rgb),0.55) !important;
   box-shadow: none !important;
 }
-:deep(.el-select__placeholder) { color: var(--text-dim) !important; }
+:deep(.el-select__placeholder) { color: rgba(255,255,255,0.40) !important; }
+::deep(.el-select__placeholder) { color: var(--text-dim) !important; }
 </style>

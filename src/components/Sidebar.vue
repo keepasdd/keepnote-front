@@ -435,7 +435,7 @@ async function submitCategory() {
   background: linear-gradient(135deg, rgba(var(--accent-rgb),0.7), rgba(var(--accent-rgb),0.95));
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 600; color: var(--text-h); flex-shrink: 0;
+  font-size: 13px; font-weight: 600; color: #fff; flex-shrink: 0;
   overflow: hidden;
 }
 .avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
@@ -459,7 +459,7 @@ async function submitCategory() {
   background: linear-gradient(135deg, rgba(var(--accent-rgb),0.5), rgba(var(--accent-rgb),0.9));
   border: 1px solid rgba(255,255,255,0.15);
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 600; color: var(--text-h); overflow: hidden;
+  font-size: 20px; font-weight: 600; color: #fff; overflow: hidden;
   position: relative; cursor: pointer;
 }
 .avatar-preview:hover .avatar-overlay { opacity: 1; }
@@ -467,9 +467,9 @@ async function submitCategory() {
   position: absolute; inset: 0; border-radius: 50%;
   background: rgba(0,0,0,0.45);
   display: flex; align-items: center; justify-content: center;
-  color: var(--text-h); font-size: 18px; opacity: 0; transition: opacity 0.2s;
+  color: #fff; font-size: 18px; opacity: 0; transition: opacity 0.2s;
 }
-.avatar-placeholder { font-size: 20px; font-weight: 600; color: var(--text-h); }
+.avatar-placeholder { font-size: 20px; font-weight: 600; color: #fff; }
 .avatar-actions { display: flex; flex-direction: column; gap: 6px; }
 .avatar-divider { font-size: 11px; color: rgba(255,255,255,0.48); text-align: center; }
 
@@ -653,7 +653,7 @@ async function submitCategory() {
   width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
 }
 .profile-avatar-char {
-  font-size: 32px; font-weight: 700; color: var(--text-h);
+  font-size: 32px; font-weight: 700; color: #fff;
 }
 .profile-avatar-overlay {
   position: absolute; inset: 0; border-radius: 50%;
@@ -661,7 +661,7 @@ async function submitCategory() {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 4px;
-  color: var(--text-h); font-size: 11px; font-weight: 500;
+  color: #fff; font-size: 11px; font-weight: 500;
   opacity: 0; transition: opacity 0.2s;
   letter-spacing: 0.3px;
 }
@@ -729,7 +729,7 @@ async function submitCategory() {
 .profile-save-btn:hover:not(:disabled) {
   background: rgba(var(--accent-rgb),0.24);
   border-color: rgba(var(--accent-rgb),0.62);
-  color: var(--text-h);
+  color: #fff;
 }
 .profile-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .loading-dot { letter-spacing: 3px; }

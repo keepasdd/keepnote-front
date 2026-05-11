@@ -99,7 +99,7 @@
       </div>
       <div class="note-view-divider" />
       <div class="note-view-body">
-        <textarea ref="editorRef" v-model="editForm.content" class="content-editor" placeholder="开始记录你的想法…" />
+        <textarea ref="editorRef" v-model="editForm.content" class="content-editor" placeholder="开始记录你的想法…" @paste="handlePaste" />
       </div>
 
       <!-- 附件区域 -->
@@ -249,6 +249,23 @@ function isImage(fileName) {
   return /\.(png|jpe?g|gif|webp|svg)$/i.test(fileName)
 }
 
+function getFileExtensionByMime(mimeType) {
+  const typeMap = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/svg+xml': 'svg',
+  }
+  return typeMap[mimeType] || 'png'
+}
+
+function createPastedImageFile(blob) {
+  const extension = getFileExtensionByMime(blob.type)
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14)
+  return new File([blob], `pasted-image-${stamp}.${extension}`, { type: blob.type || 'image/png' })
+}
+
 function formatSize(bytes) {
   if (!bytes) return ''
   if (bytes < 1024) return bytes + ' B'
@@ -263,14 +280,6 @@ function startEdit() {
   editForm.categoryId = note.value.categoryId || null
   editForm.tagIds = note.value.tags?.map(t => t.id) || []
   isEditing.value = true
-  
-  // 为编辑器添加粘贴事件监听器
-  setTimeout(() => {
-    const textarea = editorRef.value
-    if (textarea) {
-      textarea.addEventListener('paste', handlePaste)
-    }
-  }, 100)
 }
 
 async function handleUpload(file) {
@@ -278,7 +287,7 @@ async function handleUpload(file) {
   try {
     const result = await uploadAttachment(editForm.id, file)
     attachments.value.push(result)
-    return result
+    ElMessage.success(`${file.name} 上传成功`)
   } catch {
     // error already shown by request interceptor
   } finally {
@@ -288,50 +297,54 @@ async function handleUpload(file) {
 }
 
 async function handlePaste(e) {
-  const items = e.clipboardData?.items
-  if (!items) return
-  
-  for (let i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf('image') === 0) {
-      e.preventDefault()
-      const file = items[i].getAsFile()
-      if (file) {
-        try {
-          const result = await handleUpload(file)
-          if (result) {
-            // 上传成功后插入图片引用到编辑器
-            const textarea = editorRef.value
-            const ref = `![${result.fileName}](${result.url})`
-            if (textarea) {
-              const start = textarea.selectionStart
-              const before = editForm.content.slice(0, start)
-              const after = editForm.content.slice(start)
-              editForm.content = before + '\n' + ref + '\n' + after
-              ElMessage.success('图片粘贴并上传成功')
-            }
-          }
-        } catch {
-          ElMessage.error('图片粘贴失败')
-        }
-      }
-      break
+  const items = Array.from(e.clipboardData?.items || [])
+  const imageItems = items.filter(item => item.type.startsWith('image/'))
+  if (!imageItems.length) return
+
+  e.preventDefault()
+
+  for (const item of imageItems) {
+    const blob = item.getAsFile()
+    if (!blob) continue
+
+    const file = createPastedImageFile(blob)
+    uploading.value = true
+    try {
+      const result = await uploadAttachment(editForm.id, file)
+      attachments.value.push(result)
+      const ref = `![${result.fileName || file.name}](${result.url})`
+      insertAttachmentReference(ref)
+      ElMessage.success('图片已上传并插入笔记')
+    } catch {
+      // error already shown by request interceptor
+    } finally {
+      uploading.value = false
     }
   }
 }
 
-function insertAttachment(att) {
+function insertAttachmentReference(ref) {
   const textarea = editorRef.value
+  if (textarea) {
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const before = editForm.content.slice(0, start)
+    const after = editForm.content.slice(end)
+    const text = `${ref}\n`
+    editForm.content = before + text + after
+    const cursor = start + text.length
+    textarea.setSelectionRange(cursor, cursor)
+    textarea.focus()
+    return
+  }
+  editForm.content += `\n${ref}\n`
+}
+
+function insertAttachment(att) {
   const ref = isImage(att.fileName)
     ? `![${att.fileName}](${att.url})`
     : `[${att.fileName}](${att.url})`
-  if (textarea) {
-    const start = textarea.selectionStart
-    const before = editForm.content.slice(0, start)
-    const after = editForm.content.slice(start)
-    editForm.content = before + '\n' + ref + '\n' + after
-  } else {
-    editForm.content += '\n' + ref
-  }
+  insertAttachmentReference(ref)
   ElMessage.success('已插入引用')
 }
 

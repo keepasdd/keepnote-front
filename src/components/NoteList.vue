@@ -8,11 +8,11 @@
       </div>
       <div class="header-actions">
         <el-button
-            :disabled="!activeNoteId"
-            :class="['btn-pin', { 'btn-unpin': activeNote?.isPinned }]"
-            @click="toggleActiveNotePin"
+          class="btn-pin"
+          :disabled="!activeNoteId"
+          @click="handlePin"
         >
-          <el-icon><Top /></el-icon> {{ activeNote?.isPinned ? '取消置顶' : '置顶' }}
+          <el-icon><Top /></el-icon> {{ isSelectedPinned ? '取消置顶' : '置顶' }}
         </el-button>
         <el-button class="btn-new-tag" @click="openTagDialog(null)">
           <el-icon><PriceTag /></el-icon> 新建标签
@@ -119,17 +119,10 @@
       >
         <div class="card-header">
           <div class="card-title">
-            <span v-if="note.isPinned" class="pin-indicator">📌</span>
+            <span v-if="note.isPinned" class="pin-icon" title="已置顶">📌</span>
             {{ note.title }}
           </div>
-          <div class="card-actions">
-            <el-tooltip :content="note.isPinned ? '取消置顶' : '置顶'">
-              <el-icon class="pin-icon" @click.stop="togglePin(note)">
-                <Top />
-              </el-icon>
-            </el-tooltip>
-            <div class="card-date">{{ note.updatedAt }}</div>
-          </div>
+          <div class="card-date">{{ note.updatedAt }}</div>
         </div>
         <div class="card-preview">{{ note.content?.replace(/<[^>]+>/g, '').slice(0, 80) }}…</div>
         <div class="card-footer">
@@ -306,7 +299,7 @@ import { useRouter } from 'vue-router'
 import { Plus, PriceTag, Edit, Delete, Top } from '@element-plus/icons-vue'
 import { addTag, updateTag, deleteTag } from '../api/tag'
 import { addCategory, deleteCategory, getCategoryList } from '../api/category'
-import { getNoteList, updateNote } from '../api/note'
+import { getNoteList, updateNote, pinNote } from '../api/note'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
@@ -322,11 +315,27 @@ const props = defineProps({
   activeCategoryId: { type: Number, default: null },
   title: { type: String, default: '全部笔记' },
 })
-const emit = defineEmits(['select', 'new-note', 'filter-change', 'tag-added', 'category-deleted', 'open-note'])
+const emit = defineEmits(['select', 'new-note', 'filter-change', 'tag-added', 'category-deleted', 'open-note', 'pin-note'])
 
 const dateFilter = ref('')
 const activeTagId = ref(null)
 const currentPage = ref(1)
+const pinLoading = ref(false)
+
+const isSelectedPinned = computed(() => {
+  const note = props.notes.find(n => n.id === props.activeNoteId)
+  return !!(note && note.isPinned)
+})
+
+async function handlePin() {
+  if (!props.activeNoteId) return
+  pinLoading.value = true
+  try {
+    emit('pin-note', props.activeNoteId)
+  } finally {
+    pinLoading.value = false
+  }
+}
 
 // ---- 展开/折叠 ----
 const expandedTags = ref(new Set())
@@ -374,10 +383,6 @@ const currentCategory = computed(() =>
     props.categories.find(category => category.id === props.activeCategoryId) || null,
 )
 
-const activeNote = computed(() =>
-    props.notes.find(note => note.id === props.activeNoteId) || null,
-)
-
 const availableTargetCategories = computed(() =>
     props.categories.filter(category => category.id !== props.activeCategoryId),
 )
@@ -397,10 +402,6 @@ function openTagDialog(parentId = null) {
 async function submitTag() {
   if (!tagForm.value.name.trim()) {
     ElMessage.warning('请输入标签名称')
-    return
-  }
-  if (tagForm.value.name.trim().length > 12) {
-    ElMessage.warning('标签名称不能超过12个字符')
     return
   }
   tagSaving.value = true
@@ -433,10 +434,6 @@ function openEditDialog(tag) {
 async function submitEdit() {
   if (!editForm.value.name.trim()) {
     ElMessage.warning('请输入标签名称')
-    return
-  }
-  if (editForm.value.name.trim().length > 12) {
-    ElMessage.warning('标签名称不能超过12个字符')
     return
   }
   editSaving.value = true
@@ -638,28 +635,6 @@ function emitFilter() {
     tagId: activeTagId.value,
   })
 }
-
-async function togglePin(note) {
-  try {
-    await updateNote({ id: note.id, isPinned: note.isPinned ? 0 : 1 })
-    note.isPinned = !note.isPinned
-    ElMessage.success(note.isPinned ? '已置顶' : '已取消置顶')
-  } catch (err) {
-    ElMessage.error(err.message || '操作失败')
-  }
-}
-
-async function toggleActiveNotePin() {
-  if (!activeNote.value) return
-  
-  try {
-    await updateNote({ id: activeNote.value.id, isPinned: activeNote.value.isPinned ? 0 : 1 })
-    activeNote.value.isPinned = !activeNote.value.isPinned
-    ElMessage.success(activeNote.value.isPinned ? '已置顶' : '已取消置顶')
-  } catch (err) {
-    ElMessage.error(err.message || '操作失败')
-  }
-}
 </script>
 
 <style scoped>
@@ -707,6 +682,33 @@ async function toggleActiveNotePin() {
   background: var(--surface3) !important;
 }
 
+/* 置顶按钮 */
+.btn-pin {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important; font-weight: 500 !important;
+  border-radius: 5px !important;
+  transition: all 0.2s !important;
+}
+.btn-pin:not(:disabled):hover {
+  border-color: var(--border-active) !important;
+  color: var(--accent) !important;
+  background: var(--surface3) !important;
+}
+.btn-pin:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 笔记卡片置顶图标 */
+.pin-icon {
+  font-size: 13px;
+  margin-right: 3px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
 .btn-delete-category {
   background: var(--surface2) !important;
   border: 1px solid rgba(231,76,60,0.35) !important;
@@ -736,39 +738,6 @@ async function toggleActiveNotePin() {
   background: var(--surface3) !important;
   border-color: rgba(var(--accent-rgb),0.70) !important;
   color: var(--text) !important;
-}
-
-/* 置顶按钮 */
-.btn-pin {
-  background: var(--surface2) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-muted) !important;
-  font-size: 12px !important; font-weight: 500 !important;
-  border-radius: 5px !important;
-  transition: all 0.2s !important;
-}
-
-.btn-pin:hover:not(:disabled) {
-  border-color: var(--border-active) !important;
-  color: var(--accent) !important;
-  background: var(--surface3) !important;
-}
-
-.btn-pin:disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-}
-
-/* 取消置顶按钮 */
-.btn-unpin {
-  border: 1px solid rgba(231,76,60,0.35) !important;
-  color: rgba(231,76,60,0.95) !important;
-}
-
-.btn-unpin:hover:not(:disabled) {
-  border-color: rgba(231,76,60,0.60) !important;
-  color: rgba(231,76,60,1) !important;
-  background: var(--surface3) !important;
 }
 
 /* ===== 颜色点 ===== */
@@ -881,57 +850,6 @@ async function toggleActiveNotePin() {
   background: var(--surface2);
 }
 .note-card.active::before { background: rgba(180,210,130,0.85); }
-
-/* 置顶笔记样式 */
-.note-card:has(.pin-indicator) {
-  background: var(--surface3);
-  border-color: var(--border-active);
-}
-.note-card:has(.pin-indicator) .card-title {
-  color: var(--text);
-  font-weight: 600;
-}
-.note-card:has(.pin-indicator) .card-preview {
-  color: var(--text);
-}
-
-/* 置顶指示器样式 */
-.pin-indicator {
-  margin-right: 6px;
-  font-size: 12px;
-  vertical-align: middle;
-}
-
-/* 置顶按钮样式 */
-.card-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pin-icon {
-  font-size: 14px;
-  cursor: pointer;
-  color: var(--text-dim);
-  transition: color 0.2s;
-  padding: 2px;
-  border-radius: 4px;
-}
-
-.pin-icon:hover {
-  color: var(--accent);
-  background: rgba(var(--accent-rgb),0.1);
-}
-
-/* 置顶状态的图标样式 */
-.note-card:has(.pin-indicator) .pin-icon {
-  color: #e74c3c;
-}
-
-.note-card:has(.pin-indicator) .pin-icon:hover {
-  color: #c0392b;
-  background: rgba(231,76,60,0.1);
-}
 
 .card-header {
   display: flex; align-items: flex-start;

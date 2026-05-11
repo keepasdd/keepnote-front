@@ -20,6 +20,11 @@ export function updateNote(data) {
     return request.put('/note/update', data)
 }
 
+// 置顶/取消置顶
+export function pinNote(data) {
+    return request.put('/note/pin', data)
+}
+
 // 删除笔记
 export function deleteNote(id) {
     return request.delete(`/note/${id}`)

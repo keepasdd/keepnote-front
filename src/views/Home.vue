@@ -6,7 +6,6 @@
         :active-category-id="activeCategoryId"
         :total-count="allCount"
         :favorite-count="favoriteCount"
-        :show-profile="route.query.showProfile === 'true'"
         @search="onSearch"
         @nav-change="onNavChange"
         @category-change="onCategoryChange"
@@ -29,6 +28,7 @@
         @tag-added="onTagChanged"
         @category-deleted="onCategoryDeleted"
         @open-note="onOpenNote"
+        @pin-note="onPinNote"
     />
 
     <NoteDetail
@@ -51,7 +51,7 @@ import {useRoute, useRouter} from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import NoteList from '../components/NoteList.vue'
 import NoteDetail from '../components/NoteDetail.vue'
-import {getNoteList, getNoteDetail, updateNote} from '../api/note'
+import {getNoteList, getNoteDetail, updateNote, pinNote} from '../api/note'
 import {getCategoryList} from '../api/category'
 import {getTagList} from '../api/tag'
 
@@ -112,7 +112,6 @@ async function loadCategories() {
 
 async function loadTags() {
   tags.value = await getTagList()
-  console.log('tags:', tags.value)  // 加这行
 }
 
 async function loadFavoriteCount() {
@@ -206,14 +205,13 @@ async function onCategoryDeleted({deletedCategoryId, targetCategoryId}) {
 }
 
 async function onSaved(payload) {
-  if (payload?._editMode) {
-    isEditing.value = true
-    return
+  const noteId = payload?.id || activeNoteId.value
+  if (payload?.id) {
+    activeNoteId.value = payload.id
   }
-  isEditing.value = false
   await Promise.all([loadNotes(), loadSidebarCounts()])
-  if (activeNoteId.value) {
-    activeNote.value = await getNoteDetail(activeNoteId.value)
+  if (noteId) {
+    activeNote.value = await getNoteDetail(noteId)
     if (payload && payload.tagIds && tags.value.length) {
       const tagMap = new Map()
       const buildTagMap = (tagList) => {
@@ -226,6 +224,7 @@ async function onSaved(payload) {
       activeNote.value.tags = payload.tagIds.map(id => tagMap.get(id)).filter(Boolean)
     }
   }
+  isEditing.value = !!payload?._editMode
 }
 
 async function onDeleted() {
@@ -239,6 +238,14 @@ async function onToggleFavorite(id) {
   await updateNote({id, isFavorite: note.isFavorite ? 0 : 1})
   activeNote.value = await getNoteDetail(id)
   await Promise.all([loadNotes(), loadSidebarCounts()])
+}
+
+async function onPinNote(id) {
+  await pinNote({ id })
+  await loadNotes()
+  if (activeNoteId.value) {
+    activeNote.value = await getNoteDetail(activeNoteId.value)
+  }
 }
 
 // ---- 双击打开笔记详情页，携带当前上下文 ----
@@ -261,20 +268,6 @@ watch(
         await loadNotes()
         await loadSidebarCounts()
         router.replace({query: {...route.query, refresh: undefined}})
-      }
-    },
-    {immediate: true}
-)
-
-// ---- 监听路由 showProfile 参数 ----
-watch(
-    () => route.query.showProfile,
-    async (newVal) => {
-      if (newVal === 'true') {
-        // 确保数据加载完成后再打开个人资料设置面板
-        await Promise.all([loadCategories(), loadTags()])
-        // 移除showProfile参数，避免刷新页面时重复打开
-        router.replace({query: {...route.query, showProfile: undefined}})
       }
     },
     {immediate: true}
