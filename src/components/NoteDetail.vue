@@ -63,18 +63,22 @@
     <!-- 查看模式 -->
     <template v-else>
       <div class="detail-toolbar">
+        <span v-if="isTrashMode" class="note-id trash-note-id">已移入回收站</span>
         <div class="actions">
-          <el-tooltip content="收藏">
+          <el-tooltip v-if="isTrashMode" content="恢复笔记">
+            <el-button :icon="RefreshLeft" circle size="small" type="primary" @click="restoreCurrentNote" />
+          </el-tooltip>
+          <el-tooltip v-if="!isTrashMode" content="收藏">
             <el-button :icon="note.isFavorite ? StarFilled : Star" circle size="small" @click="toggleFavorite" />
           </el-tooltip>
           <input ref="viewerFileInput" type="file" style="display:none" multiple @change="handleFileInput" />
-          <el-tooltip content="上传附件">
+          <el-tooltip v-if="!isTrashMode" content="上传附件">
             <el-button :icon="Upload" circle size="small" @click="triggerFileSelect" />
           </el-tooltip>
-          <el-tooltip content="编辑">
+          <el-tooltip v-if="!isTrashMode" content="编辑">
             <el-button :icon="Edit" circle size="small" @click="startEdit" />
           </el-tooltip>
-          <el-tooltip content="删除">
+          <el-tooltip v-if="!isTrashMode" content="删除">
             <el-button :icon="Delete" circle size="small" type="danger" plain @click="confirmDelete" />
           </el-tooltip>
         </div>
@@ -136,7 +140,7 @@
 
 <script setup>
 import { ref, computed, watch, reactive, nextTick } from 'vue'
-import { Edit, Delete, Star, StarFilled, Calendar, Document, Upload, Download, Close } from '@element-plus/icons-vue'
+import { Edit, Delete, Star, StarFilled, Calendar, Document, Upload, Download, Close, RefreshLeft } from '@element-plus/icons-vue'
 import { addNote, updateNote, deleteNote, uploadAttachment, deleteAttachment } from '../api/note'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -146,8 +150,9 @@ const props = defineProps({
   categories: { type: Array, default: () => [] },
   tags: { type: Array, default: () => [] },  // 树形结构（含 children）
   defaultCategoryId: { type: Number, default: null },
+  isTrashMode: { type: Boolean, default: false },
 })
-const emit = defineEmits(['deleted', 'saved', 'cancel-edit', 'toggle-favorite'])
+const emit = defineEmits(['deleted', 'saved', 'cancel-edit', 'toggle-favorite', 'restore'])
 
 const saving = ref(false)
 const editForm = reactive({ id: null, title: '', content: '', categoryId: null, tagIds: [] })
@@ -249,10 +254,14 @@ async function save(options = {}) {
 }
 
 async function confirmDelete() {
-  await ElMessageBox.confirm('确定删除这篇笔记吗？', '提示', { type: 'warning' })
+  await ElMessageBox.confirm('确定将这篇笔记移入回收站吗？30天内可恢复。', '移入回收站', { type: 'warning' })
   await deleteNote(props.note.id)
-  ElMessage.success('已删除')
+  ElMessage.success('已移入回收站')
   emit('deleted')
+}
+
+function restoreCurrentNote() {
+  emit('restore', props.note.id)
 }
 
 function toggleFavorite() { emit('toggle-favorite', props.note.id) }
@@ -463,6 +472,9 @@ function formatSize(size) {
   font-family: var(--font-mono); font-size: 11px;
   color: rgba(180,210,130,0.7);
 }
+.trash-note-id {
+  color: rgba(255,180,120,0.82);
+}
 .actions { display: flex; gap: 6px; }
 
 /* ===== 元信息区 ===== */
@@ -547,14 +559,9 @@ function formatSize(size) {
 :deep(.el-upload-dragger:hover) {
   border-color: rgba(var(--accent-rgb),0.55) !important;
 }
-:deep(.el-upload__text) { color: rgba(255,255,255,0.45) !important; font-size: 13px !important; }
-:deep(.el-upload__text em) { color: rgba(180,210,130,0.85) !important; }
-:deep(.el-upload__tip) { color: rgba(255,255,255,0.28) !important; font-size: 11px !important; }
-
-/* 覆盖上传区文字颜色：白底模式下保证可读 */
-::deep(.el-upload__text) { color: var(--text-muted) !important; font-size: 13px !important; }
-::deep(.el-upload__text em) { color: var(--accent) !important; }
-::deep(.el-upload__tip) { color: var(--text-dim) !important; font-size: 11px !important; }
+:deep(.el-upload__text) { color: var(--text-muted) !important; font-size: 13px !important; }
+:deep(.el-upload__text em) { color: var(--accent) !important; }
+:deep(.el-upload__tip) { color: var(--text-dim) !important; font-size: 11px !important; }
 
 /* ===== 附件展示区 ===== */
 .attachments-section {
@@ -618,6 +625,11 @@ function formatSize(size) {
   border-color: rgba(var(--accent-rgb),0.55) !important;
   box-shadow: none !important;
 }
-:deep(.el-select__placeholder) { color: rgba(255,255,255,0.40) !important; }
-::deep(.el-select__placeholder) { color: var(--text-dim) !important; }
+:deep(.el-select__selected-item),
+:deep(.el-select__placeholder:not(.is-transparent)) {
+  color: var(--text) !important;
+}
+:deep(.el-select__placeholder.is-transparent) {
+  color: var(--text-dim) !important;
+}
 </style>

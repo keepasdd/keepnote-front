@@ -193,6 +193,7 @@ const props = defineProps({
   activeCategoryId: { type: Number, default: null },
   totalCount: { type: Number, default: 0 },
   favoriteCount: { type: Number, default: 0 },
+  trashCount: { type: Number, default: 0 },
 })
 const emit = defineEmits(['search', 'nav-change', 'category-change', 'category-added'])
 
@@ -244,6 +245,7 @@ const avatarChar = computed(() => displayName.value.charAt(0))
 const navItems = computed(() => [
   { key: 'all', label: '全部笔记', icon: 'HomeFilled', count: props.totalCount },
   { key: 'favorite', label: '收藏夹', icon: 'StarFilled', count: props.favoriteCount },
+  { key: 'trash', label: '回收站', icon: 'DeleteFilled', count: props.trashCount },
 ])
 
 function openProfile() {

@@ -739,6 +739,12 @@ async function toggleFavorite() {
   border-color: rgba(var(--accent-rgb), 0.60) !important;
   box-shadow: none !important;
 }
-:deep(.el-select__placeholder) { color: var(--text-dim) !important; }
+:deep(.el-select__selected-item),
+:deep(.el-select__placeholder:not(.is-transparent)) {
+  color: var(--text) !important;
+}
+:deep(.el-select__placeholder.is-transparent) {
+  color: var(--text-dim) !important;
+}
 :deep(.el-skeleton__item) { background: var(--surface2) !important; }
 </style>

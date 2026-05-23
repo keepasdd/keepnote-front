@@ -30,6 +30,11 @@ export function deleteNote(id) {
     return request.delete(`/note/${id}`)
 }
 
+// 从回收站恢复笔记
+export function restoreNote(id) {
+    return request.put(`/note/${id}/restore`)
+}
+
 // 上传附件（multipart/form-data）
 export function uploadAttachment(noteId, file) {
     const form = new FormData()

@@ -4,34 +4,35 @@
     <div class="list-header">
       <div>
         <div class="list-title">{{ title }}</div>
-        <div class="list-subtitle">共 {{ total }} 篇</div>
+        <div class="list-subtitle">{{ subtitle }}</div>
       </div>
       <div class="header-actions">
         <el-button
+          v-if="!isTrashMode"
           class="btn-pin"
           :disabled="!activeNoteId"
           @click="handlePin"
         >
           <el-icon><Top /></el-icon> {{ isSelectedPinned ? '取消置顶' : '置顶' }}
         </el-button>
-        <el-button class="btn-new-tag" @click="openTagDialog(null)">
+        <el-button v-if="!isTrashMode" class="btn-new-tag" @click="openTagDialog(null)">
           <el-icon><PriceTag /></el-icon> 新建标签
         </el-button>
         <el-button
-            v-if="currentCategory"
+            v-if="currentCategory && !isTrashMode"
             class="btn-delete-category"
             @click="openDeleteCategoryDialog"
         >
           <el-icon><Delete /></el-icon> 删除分类
         </el-button>
-        <el-button type="primary" class="btn-new" @click="emit('new-note')">
+        <el-button v-if="!isTrashMode" type="primary" class="btn-new" @click="emit('new-note')">
           <el-icon><Plus /></el-icon> 新建笔记
         </el-button>
       </div>
     </div>
 
     <!-- 筛选 -->
-    <div class="filter-bar">
+    <div v-if="!isTrashMode" class="filter-bar">
       <el-radio-group v-model="dateFilter" size="small" @change="onFilterChange">
         <el-radio-button value="">全部</el-radio-button>
         <el-radio-button value="today">今天</el-radio-button>
@@ -41,7 +42,7 @@
     </div>
 
     <!-- 多级标签筛选区 -->
-    <div class="tags-tree" v-if="tags.length">
+    <div class="tags-tree" v-if="tags.length && !isTrashMode">
       <template v-for="tag in tags" :key="tag.id">
         <!-- 父标签行 -->
         <div class="tag-row-wrap">
@@ -119,10 +120,10 @@
       >
         <div class="card-header">
           <div class="card-title">
-            <span v-if="note.isPinned" class="pin-icon" title="已置顶">📌</span>
+            <span v-if="note.isPinned && !isTrashMode" class="pin-icon" title="已置顶">📌</span>
             {{ note.title }}
           </div>
-          <div class="card-date">{{ note.updatedAt }}</div>
+          <div class="card-date">{{ isTrashMode ? note.deletedTime : note.updatedAt }}</div>
         </div>
         <div class="card-preview">{{ note.content?.replace(/<[^>]+>/g, '').slice(0, 80) }}…</div>
         <div class="card-footer">
@@ -131,7 +132,8 @@
               class="note-tag"
               :style="{ background: tag.color + '18', color: tag.color }"
           >{{ tag.name }}</span>
-          <span class="note-category" v-if="note.categoryName">
+          <span class="trash-hint" v-if="isTrashMode">30天后自动删除</span>
+          <span class="note-category" v-if="note.categoryName && !isTrashMode">
             <span class="dot" :style="{ background: note.categoryColor }" />
             {{ note.categoryName }}
           </span>
@@ -314,6 +316,7 @@ const props = defineProps({
   activeNoteId: { type: Number, default: null },
   activeCategoryId: { type: Number, default: null },
   title: { type: String, default: '全部笔记' },
+  isTrashMode: { type: Boolean, default: false },
 })
 const emit = defineEmits(['select', 'new-note', 'filter-change', 'tag-added', 'category-deleted', 'open-note', 'pin-note'])
 
@@ -321,6 +324,8 @@ const dateFilter = ref('')
 const activeTagId = ref(null)
 const currentPage = ref(1)
 const pinLoading = ref(false)
+
+const subtitle = computed(() => props.isTrashMode ? `共 ${props.total} 篇 · 可在30天内恢复` : `共 ${props.total} 篇`)
 
 const isSelectedPinned = computed(() => {
   const note = props.notes.find(n => n.id === props.activeNoteId)
@@ -875,6 +880,12 @@ function emitFilter() {
 .note-category {
   margin-left: auto; font-size: 10px; color: var(--text-dim);
   display: flex; align-items: center; gap: 4px;
+}
+.trash-hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: rgba(255,180,120,0.78);
+  font-family: var(--font-mono);
 }
 .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 

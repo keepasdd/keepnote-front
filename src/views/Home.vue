@@ -6,6 +6,7 @@
         :active-category-id="activeCategoryId"
         :total-count="allCount"
         :favorite-count="favoriteCount"
+        :trash-count="trashCount"
         @search="onSearch"
         @nav-change="onNavChange"
         @category-change="onCategoryChange"
@@ -21,6 +22,7 @@
         :loading="listLoading"
         :active-note-id="activeNoteId"
         :active-category-id="activeCategoryId"
+        :is-trash-mode="isTrashMode"
         :title="listTitle"
         @select="onSelectNote"
         @new-note="onNewNote"
@@ -36,8 +38,10 @@
         :is-editing="isEditing"
         :categories="categories"
         :tags="tags"
+        :is-trash-mode="isTrashMode"
         @saved="onSaved"
         @deleted="onDeleted"
+        @restore="onRestore"
         @cancel-edit="isEditing = false"
         @toggle-favorite="onToggleFavorite"
     />
@@ -51,9 +55,10 @@ import {useRoute, useRouter} from 'vue-router'
 import Sidebar from '../components/Sidebar.vue'
 import NoteList from '../components/NoteList.vue'
 import NoteDetail from '../components/NoteDetail.vue'
-import {getNoteList, getNoteDetail, updateNote, pinNote} from '../api/note'
+import {getNoteList, getNoteDetail, updateNote, pinNote, restoreNote} from '../api/note'
 import {getCategoryList} from '../api/category'
 import {getTagList} from '../api/tag'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
 const router = useRouter()
@@ -65,6 +70,7 @@ const tags = ref([])
 const total = ref(0)
 const allCount = ref(0)
 const favoriteCount = ref(0)
+const trashCount = ref(0)
 const listLoading = ref(false)
 
 const activeNav = ref('all')
@@ -78,9 +84,11 @@ const currentPage = ref(1)
 const pageSize = 20
 const dateRange = ref('')
 const activeTagId = ref(null)
+const isTrashMode = computed(() => activeNav.value === 'trash')
 
 const listTitle = computed(() => {
   if (activeNav.value === 'favorite') return '收藏夹'
+  if (activeNav.value === 'trash') return '回收站'
   const cat = categories.value.find(c => c.id === activeCategoryId.value)
   return cat ? cat.name : '全部笔记'
 })
@@ -96,6 +104,7 @@ async function loadNotes() {
       categoryId: activeCategoryId.value || undefined,
       tagId: activeTagId.value || undefined,
       isFavorite: activeNav.value === 'favorite' ? 1 : undefined,
+      isDeleted: isTrashMode.value ? 1 : 0,
       dateRange: dateRange.value || undefined,
     }
     const data = await getNoteList(params)
@@ -120,12 +129,17 @@ async function loadFavoriteCount() {
 }
 
 async function loadAllCount() {
-  const data = await getNoteList({pageSize: 1})
+  const data = await getNoteList({pageSize: 1, isDeleted: 0})
   allCount.value = data.total
 }
 
+async function loadTrashCount() {
+  const data = await getNoteList({pageSize: 1, isDeleted: 1})
+  trashCount.value = data.total
+}
+
 async function loadSidebarCounts() {
-  await Promise.all([loadAllCount(), loadFavoriteCount()])
+  await Promise.all([loadAllCount(), loadFavoriteCount(), loadTrashCount()])
 }
 
 onMounted(async () => {
@@ -165,6 +179,9 @@ function onSearch(kw) {
 function onNavChange(key) {
   activeNav.value = key
   activeCategoryId.value = null
+  activeNoteId.value = null
+  activeNote.value = null
+  isEditing.value = false
   currentPage.value = 1
   loadNotes()
 }
@@ -172,6 +189,9 @@ function onNavChange(key) {
 function onCategoryChange(id) {
   activeCategoryId.value = id
   activeNav.value = 'all'
+  activeNoteId.value = null
+  activeNote.value = null
+  isEditing.value = false
   currentPage.value = 1
   loadNotes()
 }
@@ -233,6 +253,14 @@ async function onDeleted() {
   await Promise.all([loadNotes(), loadSidebarCounts()])
 }
 
+async function onRestore(id) {
+  await restoreNote(id)
+  ElMessage.success('笔记已恢复')
+  activeNote.value = null
+  activeNoteId.value = null
+  await Promise.all([loadNotes(), loadSidebarCounts()])
+}
+
 async function onToggleFavorite(id) {
   const note = activeNote.value
   await updateNote({id, isFavorite: note.isFavorite ? 0 : 1})
@@ -250,6 +278,7 @@ async function onPinNote(id) {
 
 // ---- 双击打开笔记详情页，携带当前上下文 ----
 function onOpenNote(id) {
+  if (isTrashMode.value) return
   const query = {}
   if (activeCategoryId.value) {
     query.context = 'category'
