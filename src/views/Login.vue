@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <!-- 背景图：用 img 标签确保 Vite 能正确处理资源路径 -->
-    <img class="bg-image" src="@/assets/pexels-lukas-hartmann-304281-880675.jpg" alt="" />
+    <img class="bg-image" src="https://keepnoteresources-1409092538.cos.ap-chengdu.myqcloud.com/login-bg.jpg" alt="" />
     <!-- 深色遮罩层 -->
     <div class="bg-overlay" />
 
