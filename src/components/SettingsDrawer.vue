@@ -24,12 +24,12 @@
             <p class="panel-section-title">主题预设</p>
             <div class="presets">
               <button
-                v-for="p in presets"
-                :key="p.id"
-                :class="{ selected: currentAccent === p.accent.toLowerCase() }"
-                class="preset"
-                @click="selectPreset(p)"
-                :title="p.name"
+                  v-for="p in presets"
+                  :key="p.id"
+                  :class="{ selected: currentAccent === p.accent.toLowerCase() }"
+                  class="preset"
+                  @click="selectPreset(p)"
+                  :title="p.name"
               >
                 <span class="swatch" :style="{ background: p.accent }"></span>
                 <span class="name">{{ p.name }}</span>
@@ -45,26 +45,26 @@
             <p class="panel-section-title" style="margin-top: 18px;">背景</p>
             <div class="bg-options">
               <button
-                class="bg-btn"
-                :class="{ selected: currentBgId === 'white' }"
-                @click="selectBackground('white')"
-                title="白色背景"
+                  class="bg-btn"
+                  :class="{ selected: currentBgId === 'white' }"
+                  @click="selectBackground('white')"
+                  title="白色背景"
               >
                 白色
               </button>
               <button
-                class="bg-btn"
-                :class="{ selected: currentBgId === 'black' }"
-                @click="selectBackground('black')"
-                title="黑色背景"
+                  class="bg-btn"
+                  :class="{ selected: currentBgId === 'black' }"
+                  @click="selectBackground('black')"
+                  title="黑色背景"
               >
                 黑色
               </button>
               <button
-                class="bg-btn"
-                :class="{ selected: currentBgId === 'tint' }"
-                @click="selectBackground('tint')"
-                title="随强调色自动生成深色背景"
+                  class="bg-btn"
+                  :class="{ selected: currentBgId === 'tint' }"
+                  @click="selectBackground('tint')"
+                  title="随强调色自动生成深色背景"
               >
                 跟随预设
               </button>
@@ -87,7 +87,6 @@ const emit = defineEmits(['update:visible'])
 
 const visible = ref(!!props.visible)
 
-// sync prop -> local
 watch(() => props.visible, v => (visible.value = v))
 
 function setBodyLocked(lock) {
@@ -110,35 +109,30 @@ watch(visible, (v) => setBodyLocked(v), { immediate: true })
 onBeforeUnmount(() => setBodyLocked(false))
 
 function selectPreset(preset) {
-  const t = { id: preset.id, accent: preset.accent, bgId: preset.bgId || 'tint' }
+  const t = { id: preset.id, accent: preset.accent, bgId: currentBgId.value }
   applyTheme(t)
   saveTheme(t)
   currentAccent.value = preset.accent.toLowerCase()
-  currentBgId.value = t.bgId
 }
 
 function onColorInput(e) {
   const color = e.target.value || '#7eba6c'
-  const t = { id: 'custom', accent: color, bgId: 'tint' }
+  const t = { id: 'custom', accent: color, bgId: currentBgId.value }
   applyTheme(t)
   saveTheme(t)
   currentAccent.value = color.toLowerCase()
-  currentBgId.value = 'tint'
 }
 
 function resetDefault() {
-  const def = { id: 'moss', accent: presets[0].accent, bgId: presets[0].bgId || 'tint' }
+  const def = { id: 'moss', accent: presets[0].accent, bgId: currentBgId.value }
   applyTheme(def)
   saveTheme(def)
   currentAccent.value = def.accent.toLowerCase()
-  currentBgId.value = def.bgId
 }
 
 function selectBackground(bgId) {
-  // 保持当前强调色不变，只切换背景
   const accent = currentAccent.value
-  const t = { id: stored.id || 'moss', accent, bgId }
-  // tint 模式下背景会依据 accent 自动生成
+  const t = { id: stored?.id || 'moss', accent, bgId }
   applyTheme(t)
   saveTheme(t)
   currentBgId.value = bgId
