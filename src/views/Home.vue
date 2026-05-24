@@ -1,50 +1,63 @@
 <template>
   <div class="home">
-    <Sidebar
-        :categories="categories"
-        :active-nav="activeNav"
-        :active-category-id="activeCategoryId"
-        :total-count="allCount"
-        :favorite-count="favoriteCount"
-        :trash-count="trashCount"
-        @search="onSearch"
-        @nav-change="onNavChange"
-        @category-change="onCategoryChange"
-        @category-added="loadCategories"
-    />
+    <div class="home-bg">
+      <div class="bg-blob blob-1" />
+      <div class="bg-blob blob-2" />
+      <div class="bg-blob blob-3" />
+      <div class="bg-grid" />
+    </div>
 
-    <NoteList
-        :notes="notes"
-        :tags="tags"
-        :categories="categories"
-        :total="total"
-        :page-size="pageSize"
-        :loading="listLoading"
-        :active-note-id="activeNoteId"
-        :active-category-id="activeCategoryId"
-        :is-trash-mode="isTrashMode"
-        :title="listTitle"
-        @select="onSelectNote"
-        @new-note="onNewNote"
-        @filter-change="onFilterChange"
-        @tag-added="onTagChanged"
-        @category-deleted="onCategoryDeleted"
-        @open-note="onOpenNote"
-        @pin-note="onPinNote"
-    />
+    <div class="panel panel-left">
+      <Sidebar
+          :categories="categories"
+          :active-nav="activeNav"
+          :active-category-id="activeCategoryId"
+          :total-count="allCount"
+          :favorite-count="favoriteCount"
+          :trash-count="trashCount"
+          @search="onSearch"
+          @nav-change="onNavChange"
+          @category-change="onCategoryChange"
+          @category-added="loadCategories"
+      />
+    </div>
 
-    <NoteDetail
-        :note="activeNote"
-        :is-editing="isEditing"
-        :categories="categories"
-        :tags="tags"
-        :is-trash-mode="isTrashMode"
-        @saved="onSaved"
-        @deleted="onDeleted"
-        @restore="onRestore"
-        @cancel-edit="isEditing = false"
-        @toggle-favorite="onToggleFavorite"
-    />
+    <div class="panel panel-center">
+      <NoteList
+          :notes="notes"
+          :tags="tags"
+          :categories="categories"
+          :total="total"
+          :page-size="pageSize"
+          :loading="listLoading"
+          :active-note-id="activeNoteId"
+          :active-category-id="activeCategoryId"
+          :is-trash-mode="isTrashMode"
+          :title="listTitle"
+          @select="onSelectNote"
+          @new-note="onNewNote"
+          @filter-change="onFilterChange"
+          @tag-added="onTagChanged"
+          @category-deleted="onCategoryDeleted"
+          @open-note="onOpenNote"
+          @pin-note="onPinNote"
+      />
+    </div>
+
+    <div class="panel panel-right">
+      <NoteDetail
+          :note="activeNote"
+          :is-editing="isEditing"
+          :categories="categories"
+          :tags="tags"
+          :is-trash-mode="isTrashMode"
+          @saved="onSaved"
+          @deleted="onDeleted"
+          @restore="onRestore"
+          @cancel-edit="isEditing = false"
+          @toggle-favorite="onToggleFavorite"
+      />
+    </div>
   </div>
 </template>
 
@@ -306,10 +319,111 @@ watch(
 <style scoped>
 .home {
   display: grid;
-  grid-template-columns: 240px 1fr 340px;
+  grid-template-columns: 260px 1fr 360px;
   height: 100vh;
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
+  position: relative;
+  gap: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.home-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.06;
+  animation: blob-float 20s ease-in-out infinite;
+}
+
+.blob-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--accent), transparent 70%);
+  top: -200px;
+  right: -150px;
+  animation-delay: 0s;
+}
+
+.blob-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.5), transparent 70%);
+  bottom: -100px;
+  left: 20%;
+  animation-delay: -7s;
+  animation-duration: 25s;
+}
+
+.blob-3 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.3), transparent 70%);
+  top: 40%;
+  left: -80px;
+  animation-delay: -14s;
+  animation-duration: 22s;
+}
+
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(var(--accent-rgb), 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 70%);
+}
+
+@keyframes blob-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -40px) scale(1.05); }
+  50% { transform: translate(-20px, 20px) scale(0.95); }
+  75% { transform: translate(-35px, -25px) scale(1.03); }
+}
+
+.panel {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+.panel:hover {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.10),
+    0 8px 24px rgba(0, 0, 0, 0.06);
+  border-color: var(--border-active);
+}
+
+.panel-left {
+  border-radius: 16px;
+}
+
+.panel-center {
+  border-radius: 16px;
+}
+
+.panel-right {
+  border-radius: 16px;
 }
 </style>

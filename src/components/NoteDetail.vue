@@ -71,10 +71,6 @@
           <el-tooltip v-if="!isTrashMode" content="收藏">
             <el-button :icon="note.isFavorite ? StarFilled : Star" circle size="small" @click="toggleFavorite" />
           </el-tooltip>
-          <input ref="viewerFileInput" type="file" style="display:none" multiple @change="handleFileInput" />
-          <el-tooltip v-if="!isTrashMode" content="上传附件">
-            <el-button :icon="Upload" circle size="small" @click="triggerFileSelect" />
-          </el-tooltip>
           <el-tooltip v-if="!isTrashMode" content="编辑">
             <el-button :icon="Edit" circle size="small" @click="startEdit" />
           </el-tooltip>
@@ -140,7 +136,7 @@
 
 <script setup>
 import { ref, computed, watch, reactive, nextTick } from 'vue'
-import { Edit, Delete, Star, StarFilled, Calendar, Document, Upload, Download, Close, RefreshLeft } from '@element-plus/icons-vue'
+import { Edit, Delete, Star, StarFilled, Calendar, Document, Download, Close, RefreshLeft } from '@element-plus/icons-vue'
 import { addNote, updateNote, deleteNote, uploadAttachment, deleteAttachment } from '../api/note'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -158,7 +154,6 @@ const saving = ref(false)
 const editForm = reactive({ id: null, title: '', content: '', categoryId: null, tagIds: [] })
 const uploadList = ref([])
 const uploading = ref(false)
-const viewerFileInput = ref(null)
 
 // 将树形标签平铺，供下拉选择器使用，显示层级路径
 const flatTags = computed(() => {
@@ -306,34 +301,6 @@ async function ensureEditingNoteId() {
   return editForm.id
 }
 
-function triggerFileSelect() {
-  if (!viewerFileInput.value) return
-  viewerFileInput.value.value = null
-  viewerFileInput.value.click()
-}
-
-async function handleFileInput(e) {
-  const files = Array.from(e.target.files || [])
-  if (!files.length) return
-  if (!props.note?.id) { ElMessage.warning('请先保存笔记后再上传附件'); return }
-  uploading.value = true
-  try {
-    for (const f of files) {
-      if (!beforeUpload(f)) continue
-      const resp = await uploadAttachment(props.note.id, f)
-      const attachment = resp?.attachment || resp
-      if (!props.note.attachments) props.note.attachments = []
-      props.note.attachments.push(attachment)
-    }
-    ElMessage.success('上传完成')
-  } catch (err) {
-    ElMessage.error(err.message || '上传失败')
-  } finally {
-    uploading.value = false
-    if (viewerFileInput.value) viewerFileInput.value.value = null
-  }
-}
-
 function beforeUpload(file) {
   const maxSize = 10 * 1024 * 1024
   if (file.size > maxSize) { ElMessage.error('文件太大，最大支持 10MB'); return false }
@@ -439,7 +406,7 @@ function formatSize(size) {
 <style scoped>
 /* ===== 面板基础 ===== */
 .detail-panel {
-  background: var(--bg);
+  background: transparent;
   display: flex; flex-direction: column;
   height: 100vh; overflow: hidden;
   font-family: 'Inter', 'PingFang SC', system-ui, sans-serif;
@@ -449,20 +416,37 @@ function formatSize(size) {
 .empty-detail {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  color: var(--text-dim); gap: 12px;
+  color: var(--text-dim); gap: 16px;
+  padding: 40px;
 }
 .empty-icon {
-  width: 48px; height: 48px;
-  border: 2px dashed var(--border); border-radius: 12px;
+  width: 64px; height: 64px;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
   display: flex; align-items: center; justify-content: center;
   color: var(--text-dim);
+  background: var(--surface2);
+  transition: border-color 0.3s, color 0.3s;
 }
-.empty-title { font-size: 14px; color: var(--text-muted); }
-.empty-sub { font-size: 12px; color: var(--text-dim); }
+.empty-icon:hover {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  color: var(--accent);
+}
+.empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+.empty-sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
 
 /* ===== 工具栏 ===== */
 .detail-toolbar {
-  padding: 18px 22px 0;
+  padding: 20px 22px 0;
   display: flex; align-items: center; justify-content: space-between;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
@@ -470,26 +454,29 @@ function formatSize(size) {
 }
 .note-id {
   font-family: var(--font-mono); font-size: 11px;
-  color: rgba(180,210,130,0.7);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 .trash-note-id {
-  color: rgba(255,180,120,0.82);
+  color: rgba(255, 160, 100, 0.85);
 }
 .actions { display: flex; gap: 6px; }
 
 /* ===== 元信息区 ===== */
-.detail-meta { padding: 16px 22px 0; flex-shrink: 0; }
+.detail-meta { padding: 18px 22px 0; flex-shrink: 0; }
 .detail-title {
-  font-size: 20px; font-weight: 600;
-  color: var(--text); line-height: 1.35; margin-bottom: 10px;
-  letter-spacing: -0.2px;
+  font-size: 22px; font-weight: 700;
+  color: var(--text); line-height: 1.3; margin-bottom: 10px;
+  letter-spacing: -0.3px;
 }
 .title-input {
   width: 100%; background: none; border: none; outline: none;
-  font-size: 20px; font-weight: 600;
-  color: var(--text); letter-spacing: -0.2px; line-height: 1.35;
-  margin-bottom: 14px; display: block;
-  caret-color: rgba(180,210,130,0.9);
+  font-size: 22px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.3px; line-height: 1.3;
+  margin-bottom: 16px; display: block;
+  caret-color: var(--accent);
+  font-family: inherit;
 }
 .title-input::placeholder { color: var(--text-dim); }
 
@@ -498,6 +485,7 @@ function formatSize(size) {
   display: flex; align-items: center; gap: 5px;
   font-size: 11px; color: var(--text-muted);
   font-family: var(--font-mono);
+  font-weight: 500;
 }
 .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 .meta-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -508,27 +496,36 @@ function formatSize(size) {
 .detail-divider { height: 1px; background: var(--border); margin: 0 22px; flex-shrink: 0; }
 
 /* ===== 统计条 ===== */
-.stats-row { display: flex; gap: 1px; padding: 14px 22px 0; flex-shrink: 0; }
+.stats-row {
+  display: flex; gap: 8px; padding: 16px 22px 0; flex-shrink: 0;
+}
 .stat {
-  flex: 1; background: var(--surface2);
-  padding: 10px 12px; text-align: center;
+  flex: 1;
+  background: var(--surface2);
+  padding: 14px 14px;
+  text-align: center;
   border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.2s, background 0.2s;
 }
-.stat:first-child { border-radius: 6px 0 0 6px; border-right: none; }
-.stat:last-child  { border-radius: 0 6px 6px 0; border-left: none; }
+.stat:hover {
+  border-color: var(--border-active);
+  background: var(--surface3);
+}
 .stat-num {
-  font-family: var(--font-mono); font-size: 18px; font-weight: 700;
-  color: rgba(180,210,130,0.9); line-height: 1;
+  font-family: var(--font-mono); font-size: 22px; font-weight: 700;
+  color: var(--accent); line-height: 1;
+  margin-bottom: 2px;
 }
-.stat-label { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+.stat-label { font-size: 10px; color: var(--text-dim); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
 /* ===== 内容体 ===== */
-.detail-body { flex: 1; overflow-y: auto; padding: 18px 22px 24px; }
-.detail-body::-webkit-scrollbar { width: 3px; }
-.detail-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+.detail-body { flex: 1; overflow-y: auto; padding: 20px 22px 24px; }
+.detail-body::-webkit-scrollbar { width: 4px; }
+.detail-body::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.15); border-radius: 4px; }
 
 .detail-content {
-  font-size: 14px; color: var(--text-muted); line-height: 1.9;
+  font-size: 14px; color: var(--text-muted); line-height: 2;
 }
 .detail-content :deep(img) {
   max-width: 100%;
@@ -542,60 +539,72 @@ function formatSize(size) {
 .content-editor {
   width: 100%; height: 100%; min-height: 400px;
   background: none; border: none; outline: none; resize: none;
-  font-size: 14px; color: var(--text); line-height: 1.9;
-  caret-color: rgba(180,210,130,0.9);
+  font-size: 14px; color: var(--text); line-height: 2;
+  caret-color: var(--accent);
+  font-family: inherit;
 }
 .content-editor::placeholder { color: var(--text-dim); }
 
 /* ===== 附件上传区 ===== */
-.attachment-area { margin-top: 16px; }
+.attachment-area { margin-top: 20px; }
 
 :deep(.el-upload-dragger) {
   background: var(--surface2) !important;
-  border: 1px dashed var(--border) !important;
-  border-radius: 8px !important;
-  transition: border-color 0.2s !important;
+  border: 1.5px dashed var(--border) !important;
+  border-radius: 12px !important;
+  transition: border-color 0.2s, background 0.2s !important;
+  padding: 24px !important;
 }
 :deep(.el-upload-dragger:hover) {
-  border-color: rgba(var(--accent-rgb),0.55) !important;
+  border-color: rgba(var(--accent-rgb), 0.55) !important;
+  background: rgba(var(--accent-rgb), 0.03) !important;
 }
 :deep(.el-upload__text) { color: var(--text-muted) !important; font-size: 13px !important; }
-:deep(.el-upload__text em) { color: var(--accent) !important; }
+:deep(.el-upload__text em) { color: var(--accent) !important; font-style: normal; }
 :deep(.el-upload__tip) { color: var(--text-dim) !important; font-size: 11px !important; }
 
 /* ===== 附件展示区 ===== */
 .attachments-section {
-  margin-top: 20px;
+  margin-top: 24px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 14px 16px;
+  border-radius: 12px;
+  padding: 16px 18px;
   background: var(--surface2);
 }
 .attachments-title {
-  font-size: 11px; font-weight: 600;
+  font-size: 11px; font-weight: 700;
   color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px;
+  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
 }
-.image-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.image-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .image-thumb-wrap {
-  width: 90px; border-radius: 7px; overflow: hidden;
+  width: 100px; border-radius: 10px; overflow: hidden;
   border: 1px solid var(--border); text-decoration: none; flex-shrink: 0;
+  transition: border-color 0.2s, transform 0.2s;
 }
-.image-thumb { width: 100%; height: 70px; object-fit: cover; display: block; }
+.image-thumb-wrap:hover {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  transform: translateY(-2px);
+}
+.image-thumb { width: 100%; height: 80px; object-fit: cover; display: block; }
 .image-thumb-name {
-  font-size: 10px; color: rgba(255,255,255,0.35); padding: 3px 5px;
+  font-size: 10px; color: var(--text-dim); padding: 4px 6px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   background: var(--surface2);
 }
-.file-list { display: flex; flex-direction: column; gap: 6px; }
+.file-list { display: flex; flex-direction: column; gap: 8px; }
 .attachment-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border-radius: 6px;
-  background: var(--surface2);
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 8px;
+  background: var(--surface3);
   border: 1px solid var(--border);
+  transition: border-color 0.2s;
 }
-.att-icon { color: rgba(var(--accent-rgb),0.75); flex-shrink: 0; }
-.att-name { flex: 1; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-item:hover {
+  border-color: var(--border-active);
+}
+.att-icon { color: var(--accent); flex-shrink: 0; }
+.att-name { flex: 1; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .att-size { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); flex-shrink: 0; }
 
 /* ===== Element Plus 按钮 / 选择器暗色覆盖 ===== */
@@ -606,24 +615,26 @@ function formatSize(size) {
   --el-button-hover-bg-color: var(--surface3);
   --el-button-hover-border-color: var(--border-active);
   --el-button-hover-text-color: var(--text);
+  border-radius: 8px !important;
 }
 :deep(.el-button--primary) {
   --el-button-bg-color: var(--surface2);
-  --el-button-border-color: rgba(var(--accent-rgb),0.50);
+  --el-button-border-color: rgba(var(--accent-rgb), 0.50);
   --el-button-text-color: var(--accent);
-  --el-button-hover-bg-color: var(--surface3);
-  --el-button-hover-border-color: rgba(var(--accent-rgb),0.75);
-  --el-button-hover-text-color: var(--text);
+  --el-button-hover-bg-color: rgba(var(--accent-rgb), 0.15);
+  --el-button-hover-border-color: rgba(var(--accent-rgb), 0.70);
+  --el-button-hover-text-color: #fff;
 }
 :deep(.el-select__wrapper) {
   background: var(--surface2) !important;
   border: 1px solid var(--border) !important;
   box-shadow: none !important;
   color: var(--text) !important;
+  border-radius: 8px !important;
 }
 :deep(.el-select__wrapper.is-focused) {
-  border-color: rgba(var(--accent-rgb),0.55) !important;
-  box-shadow: none !important;
+  border-color: rgba(var(--accent-rgb), 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.06) !important;
 }
 :deep(.el-select__selected-item),
 :deep(.el-select__placeholder:not(.is-transparent)) {

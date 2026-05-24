@@ -650,6 +650,8 @@ function emitFilter() {
   border-right: 1px solid var(--border);
   background: var(--bg);
   font-family: 'Inter', 'PingFang SC', system-ui, sans-serif;
+  padding-bottom: 8px;
+  box-sizing: border-box;
 }
 
 /* ===== 头部 ===== */

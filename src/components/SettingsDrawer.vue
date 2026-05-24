@@ -1,80 +1,82 @@
 <template>
   <teleport to="body">
-    <div v-if="visible" class="settings-backdrop" @click.self="close">
-      <div class="settings-drawer" role="dialog" aria-modal="true">
-        <aside class="settings-menu">
-          <ul>
-            <li :class="{ active: tab === 'profile' }" @click="tab = 'profile'">个人资料</li>
-            <li :class="{ active: tab === 'ui' }" @click="tab = 'ui'">界面 UI</li>
-          </ul>
-        </aside>
+    <Transition name="drawer">
+      <div v-if="visible" class="settings-backdrop" @click.self="close">
+        <div class="settings-drawer" role="dialog" aria-modal="true">
+          <aside class="settings-menu">
+            <ul>
+              <li :class="{ active: tab === 'profile' }" @click="tab = 'profile'">个人资料</li>
+              <li :class="{ active: tab === 'ui' }" @click="tab = 'ui'">界面 UI</li>
+            </ul>
+          </aside>
 
-        <section class="settings-content">
-          <header class="settings-header">
-            <h3 v-if="tab === 'profile'">个人资料</h3>
-            <h3 v-else>界面 UI</h3>
-            <button class="close-btn" @click="close">关闭</button>
-          </header>
+          <section class="settings-content">
+            <header class="settings-header">
+              <h3 v-if="tab === 'profile'">个人资料</h3>
+              <h3 v-else>界面 UI</h3>
+              <button class="close-btn" @click="close">关闭</button>
+            </header>
 
-          <div v-if="tab === 'profile'" class="panel">
-            <slot name="profile">这里放个人资料表单</slot>
-          </div>
-
-          <div v-else class="panel ui-panel">
-            <p class="panel-section-title">主题预设</p>
-            <div class="presets">
-              <button
-                  v-for="p in presets"
-                  :key="p.id"
-                  :class="{ selected: currentAccent === p.accent.toLowerCase() }"
-                  class="preset"
-                  @click="selectPreset(p)"
-                  :title="p.name"
-              >
-                <span class="swatch" :style="{ background: p.accent }"></span>
-                <span class="name">{{ p.name }}</span>
-              </button>
+            <div v-if="tab === 'profile'" class="panel">
+              <slot name="profile">这里放个人资料表单</slot>
             </div>
 
-            <div class="custom">
-              <label>自定义颜色</label>
-              <input type="color" :value="currentAccent" @input="onColorInput" />
-              <button class="reset-btn" @click="resetDefault">恢复默认</button>
-            </div>
+            <div v-else class="panel ui-panel">
+              <p class="panel-section-title">主题预设</p>
+              <div class="presets">
+                <button
+                    v-for="p in presets"
+                    :key="p.id"
+                    :class="{ selected: currentAccent === p.accent.toLowerCase() }"
+                    class="preset"
+                    @click="selectPreset(p)"
+                    :title="p.name"
+                >
+                  <span class="swatch" :style="{ background: p.accent }"></span>
+                  <span class="name">{{ p.name }}</span>
+                </button>
+              </div>
 
-            <p class="panel-section-title" style="margin-top: 18px;">背景</p>
-            <div class="bg-options">
-              <button
-                  class="bg-btn"
-                  :class="{ selected: currentBgId === 'white' }"
-                  @click="selectBackground('white')"
-                  title="白色背景"
-              >
-                白色
-              </button>
-              <button
-                  class="bg-btn"
-                  :class="{ selected: currentBgId === 'black' }"
-                  @click="selectBackground('black')"
-                  title="黑色背景"
-              >
-                黑色
-              </button>
-              <button
-                  class="bg-btn"
-                  :class="{ selected: currentBgId === 'tint' }"
-                  @click="selectBackground('tint')"
-                  title="随强调色自动生成深色背景"
-              >
-                跟随预设
-              </button>
-            </div>
+              <div class="custom">
+                <label>自定义颜色</label>
+                <input type="color" :value="currentAccent" @input="onColorInput" />
+                <button class="reset-btn" @click="resetDefault">恢复默认</button>
+              </div>
 
-            <p class="hint">主题会立即生效并保存在本地，下次打开仍然生效。</p>
-          </div>
-        </section>
+              <p class="panel-section-title" style="margin-top: 18px;">背景</p>
+              <div class="bg-options">
+                <button
+                    class="bg-btn"
+                    :class="{ selected: currentBgId === 'white' }"
+                    @click="selectBackground('white')"
+                    title="白色背景"
+                >
+                  白色
+                </button>
+                <button
+                    class="bg-btn"
+                    :class="{ selected: currentBgId === 'black' }"
+                    @click="selectBackground('black')"
+                    title="黑色背景"
+                >
+                  黑色
+                </button>
+                <button
+                    class="bg-btn"
+                    :class="{ selected: currentBgId === 'tint' }"
+                    @click="selectBackground('tint')"
+                    title="随强调色自动生成深色背景"
+                >
+                  跟随预设
+                </button>
+              </div>
+
+              <p class="hint">主题会立即生效并保存在本地，下次打开仍然生效。</p>
+            </div>
+          </section>
+        </div>
       </div>
-    </div>
+    </Transition>
   </teleport>
 </template>
 
@@ -140,6 +142,32 @@ function selectBackground(bgId) {
 </script>
 
 <style scoped>
+/* ===== 过渡动画 ===== */
+.drawer-enter-active {
+  transition: opacity 0.3s ease;
+}
+.drawer-leave-active {
+  transition: opacity 0.2s ease;
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+}
+.drawer-enter-active .settings-drawer {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+.drawer-leave-active .settings-drawer {
+  transition: transform 0.2s ease, opacity 0.15s ease;
+}
+.drawer-enter-from .settings-drawer {
+  transform: scale(0.92) translateY(20px);
+  opacity: 0;
+}
+.drawer-leave-to .settings-drawer {
+  transform: scale(0.95) translateY(10px);
+  opacity: 0;
+}
+
 .settings-backdrop {
   position: fixed;
   inset: 0;
@@ -152,7 +180,7 @@ function selectBackground(bgId) {
 .settings-drawer {
   width: 900px;
   max-width: calc(100% - 40px);
-  height: 80vh;
+  max-height: 90vh;
   background: var(--bg, rgba(20,26,21,0.98));
   display: flex;
   border-radius: 8px;
@@ -172,7 +200,7 @@ function selectBackground(bgId) {
 .settings-header { display:flex; justify-content: space-between; align-items:center; margin-bottom: 10px; }
 .close-btn { background: none; border: none; cursor: pointer; color: var(--text-dim); }
 
-.panel { overflow: auto; padding: 8px 4px 12px; flex: 1; min-height: 0; }
+.panel { padding: 8px 4px 12px; flex: 1; }
 .panel-section-title { font-weight: 600; color: var(--text-h); margin-bottom: 8px; }
 
 .presets { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 16px; }
