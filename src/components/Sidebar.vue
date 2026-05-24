@@ -386,11 +386,11 @@ async function submitCategory() {
 
 .nav-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 10px;
+  padding: 9px 12px; border-radius: 8px;
   cursor: pointer;
   color: var(--text);
   font-size: 13px; font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
   margin: 0 2px;
 }
 .nav-item:hover {
@@ -430,11 +430,11 @@ async function submitCategory() {
 
 .category-item {
   display: flex; align-items: center; gap: 9px;
-  padding: 8px 12px; border-radius: 10px;
+  padding: 8px 12px; border-radius: 8px;
   cursor: pointer;
   color: var(--text);
   font-size: 13px; font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
   margin: 0 2px;
 }
 .category-item:hover {
@@ -496,7 +496,17 @@ async function submitCategory() {
 
 .user-info { flex: 1; min-width: 0; }
 .user-name { font-size: 13px; font-weight: 600; color: var(--text); }
-.user-role { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 10px; color: rgba(140,140,140,0.65); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 设置图标 hover 动画 */
+.user-area .el-icon {
+  transition: transform 0.4s ease, color 0.25s ease;
+}
+.user-area:hover .el-icon {
+  transform: rotate(90deg);
+  color: var(--accent);
+  filter: brightness(1.3);
+}
 
 /* ===== 颜色选择点 ===== */
 .color-options { display: flex; gap: 8px; flex-wrap: wrap; }

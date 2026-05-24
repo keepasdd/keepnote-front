@@ -114,18 +114,19 @@
       <div
           v-for="note in notes" :key="note.id"
           class="note-card"
-          :class="{ active: activeNoteId === note.id }"
+          :class="{ active: activeNoteId === note.id, pinned: note.isPinned && !isTrashMode }"
           @click="emit('select', note.id)"
           @dblclick="emit('open-note', note.id)"
       >
+        <div class="card-ribbon" v-if="note.isPinned && !isTrashMode"></div>
         <div class="card-header">
           <div class="card-title">
-            <span v-if="note.isPinned && !isTrashMode" class="pin-icon" title="已置顶">📌</span>
+            <el-icon v-if="note.isPinned && !isTrashMode" class="pin-icon" title="已置顶"><Top /></el-icon>
             {{ note.title }}
           </div>
           <div class="card-date">{{ isTrashMode ? note.deletedTime : note.updatedAt }}</div>
         </div>
-        <div class="card-preview">{{ note.content?.replace(/<[^>]+>/g, '').slice(0, 80) }}…</div>
+        <div class="card-preview">{{ getCleanPreview(note) }}</div>
         <div class="card-footer">
           <span
               v-for="tag in note.tags" :key="tag.id"
@@ -332,7 +333,26 @@ const isSelectedPinned = computed(() => {
   return !!(note && note.isPinned)
 })
 
-async function handlePin() {
+function getCleanPreview(note) {
+  if (!note?.content) return ''
+  let text = note.content
+  text = text.replace(/!\[.*?\]\(.*?\)/g, '')
+  text = text.replace(/\[([^\]]*)\]\(.*?\)/g, '$1')
+  text = text.replace(/<[^>]+>/g, '')
+  text = text.replace(/^#{1,6}\s+/gm, '')
+  text = text.replace(/\*\*([^*]+)\*\*/g, '$1')
+  text = text.replace(/\*([^*]+)\*/g, '$1')
+  text = text.replace(/__([^_]+)__/g, '$1')
+  text = text.replace(/_([^_]+)_/g, '$1')
+  text = text.replace(/```[\s\S]*?```/g, '')
+  text = text.replace(/`([^`]+)`/g, '$1')
+  text = text.replace(/~~([^~]+)~~/g, '$1')
+  text = text.replace(/^\s*[-*+]\s+/gm, '')
+  text = text.replace(/^\s*\d+\.\s+/gm, '')
+  return text.replace(/\s+/g, ' ').trim().slice(0, 80)
+}
+
+function handlePin() {
   if (!props.activeNoteId) return
   pinLoading.value = true
   try {
@@ -647,8 +667,7 @@ function emitFilter() {
 .note-list-panel {
   display: flex; flex-direction: column;
   height: 100vh; overflow: hidden;
-  border-right: 1px solid var(--border);
-  background: var(--bg);
+  background: #f8f9fa;
   font-family: 'Inter', 'PingFang SC', system-ui, sans-serif;
   padding-bottom: 8px;
   box-sizing: border-box;
@@ -657,97 +676,70 @@ function emitFilter() {
 /* ===== 头部 ===== */
 .list-header {
   padding: 26px 22px 0;
-  display: flex; align-items: flex-start;
+  display: flex; align-items: center;
   justify-content: space-between; gap: 12px;
   flex-shrink: 0;
 }
 
 .list-title {
   font-size: 17px; font-weight: 600;
-  color: var(--text);
+  color: #1a1a1a;
   letter-spacing: -0.2px;
 }
 .list-subtitle {
-  font-size: 11px; color: var(--text-muted);
+  font-size: 11px; color: #9a9a9a;
   margin-top: 3px; font-family: var(--font-mono);
 }
 
 .header-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
-/* 新建标签按钮 */
-.btn-new-tag {
-  background: var(--surface2) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-muted) !important;
-  font-size: 12px !important; font-weight: 500 !important;
-  border-radius: 5px !important;
-  transition: all 0.2s !important;
-}
-.btn-new-tag:hover {
-  border-color: var(--border-active) !important;
-  color: var(--accent) !important;
-  background: var(--surface3) !important;
-}
-
-/* 置顶按钮 */
+.btn-new-tag,
 .btn-pin {
-  background: var(--surface2) !important;
-  border: 1px solid var(--border) !important;
-  color: var(--text-muted) !important;
+  background: #f2f3f5 !important;
+  border: 1px solid #e5e6e8 !important;
+  color: #666 !important;
   font-size: 12px !important; font-weight: 500 !important;
-  border-radius: 5px !important;
+  border-radius: 6px !important;
   transition: all 0.2s !important;
 }
+.btn-new-tag:hover,
 .btn-pin:not(:disabled):hover {
-  border-color: var(--border-active) !important;
-  color: var(--accent) !important;
-  background: var(--surface3) !important;
+  border-color: #c8cacc !important;
+  color: #333 !important;
+  background: #e9eaec !important;
 }
-.btn-pin:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* 笔记卡片置顶图标 */
-.pin-icon {
-  font-size: 13px;
-  margin-right: 3px;
-  flex-shrink: 0;
-  line-height: 1;
-}
+.btn-pin:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-delete-category {
-  background: var(--surface2) !important;
-  border: 1px solid rgba(231,76,60,0.35) !important;
-  color: rgba(231,76,60,0.95) !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
-  border-radius: 5px !important;
+  background: #fff5f5 !important;
+  border: 1px solid #fcd0d0 !important;
+  color: #e05555 !important;
+  font-size: 12px !important; font-weight: 500 !important;
+  border-radius: 6px !important;
   transition: all 0.2s !important;
 }
 .btn-delete-category:hover {
-  border-color: rgba(231,76,60,0.60) !important;
-  color: rgba(231,76,60,1) !important;
-  background: var(--surface3) !important;
+  background: #ffeded !important;
+  border-color: #f5a0a0 !important;
+  color: #d03030 !important;
 }
 
-/* 新建笔记按钮 */
 .btn-new {
-  background: var(--surface2) !important;
-  border: 1px solid rgba(var(--accent-rgb),0.45) !important;
-  color: var(--accent) !important;
+  background: #f0f5f0 !important;
+  border: 1px solid #c8ddc8 !important;
+  color: #4a8a4a !important;
   font-size: 12px !important; font-weight: 600 !important;
-  border-radius: 5px !important;
+  border-radius: 6px !important;
   box-shadow: none !important;
   transition: all 0.2s !important;
 }
 .btn-new:hover {
-  background: var(--surface3) !important;
-  border-color: rgba(var(--accent-rgb),0.70) !important;
-  color: var(--text) !important;
+  background: #e2f0e2 !important;
+  border-color: #9cc59c !important;
+  color: #2d6d2d !important;
 }
 
-/* ===== 颜色点 ===== */
+/* 颜色点 */
 .color-options { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .color-dot {
   width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
@@ -756,23 +748,23 @@ function emitFilter() {
 .color-dot:hover { transform: scale(1.2); }
 
 /* ===== 筛选栏 ===== */
-.filter-bar { padding: 14px 22px 8px; flex-shrink: 0; }
+.filter-bar { padding: 20px 22px 8px; flex-shrink: 0; }
 
 :deep(.filter-bar .el-radio-button__inner) {
-  background: var(--surface2) !important;
-  border-color: var(--border) !important;
-  color: var(--text-dim) !important;
+  background: #f2f3f5 !important;
+  border-color: #e5e6e8 !important;
+  color: #777 !important;
   font-size: 12px !important;
   transition: all 0.15s !important;
 }
 :deep(.filter-bar .el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  background: rgba(var(--accent-rgb),0.20) !important;
-  border-color: rgba(var(--accent-rgb),0.50) !important;
-  color: rgba(var(--accent-rgb),0.98) !important;
+  background: #e8f0e8 !important;
+  border-color: #b4ceb4 !important;
+  color: #3a7a3a !important;
   box-shadow: none !important;
 }
 :deep(.filter-bar .el-radio-button__inner:hover) {
-  color: var(--text) !important;
+  color: #444 !important;
 }
 
 /* ===== 多级标签树 ===== */
@@ -782,13 +774,10 @@ function emitFilter() {
   flex-shrink: 0; max-height: 200px; overflow-y: auto;
 }
 .tags-tree::-webkit-scrollbar { width: 3px; }
-.tags-tree::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+.tags-tree::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.10); border-radius: 3px; }
 
-.tag-row-wrap {
-  display: flex; align-items: center; gap: 4px;
-}
+.tag-row-wrap { display: flex; align-items: center; gap: 4px; }
 .tag-row-wrap:hover .tag-actions { opacity: 1; }
-
 .child-row { padding-left: 18px; }
 
 .tag-pill {
@@ -799,8 +788,8 @@ function emitFilter() {
   font-weight: 500; flex-shrink: 0;
 }
 .child-pill { font-size: 10.5px; padding: 2px 9px 2px 6px; }
-.tag-pill:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.3); }
-.tag-pill.active { box-shadow: 0 2px 8px rgba(0,0,0,0.30); }
+.tag-pill:hover { box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+.tag-pill.active { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
 .tag-dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -812,81 +801,122 @@ function emitFilter() {
   font-size: 8px; display: inline-block;
   transition: transform 0.2s; cursor: pointer;
   transform: rotate(0deg); line-height: 1;
-  color: var(--text-dim);
+  color: #aaa;
 }
 .expand-arrow.expanded { transform: rotate(90deg); }
 
-.tag-actions {
-  display: flex; gap: 2px; opacity: 1;
-  transition: opacity 0.15s;
-}
+.tag-actions { display: flex; gap: 2px; opacity: 1; transition: opacity 0.15s; }
 .tag-action-icon {
-  font-size: 13px; cursor: pointer; color: var(--text-dim);
+  font-size: 13px; cursor: pointer; color: #aaa;
   padding: 3px; border-radius: 4px; transition: color 0.15s, background 0.15s;
 }
-.tag-action-icon:hover { color: rgba(200,230,150,0.95); background: rgba(180,210,130,0.12); }
-.tag-action-icon.danger:hover { color: rgba(255,100,80,0.95); background: rgba(231,76,60,0.12); }
+.tag-action-icon:hover { color: #5a9a5a; background: rgba(90, 154, 90, 0.08); }
+.tag-action-icon.danger:hover { color: #d44; background: rgba(221, 68, 68, 0.08); }
 
 /* ===== 笔记列表体 ===== */
-.list-body { flex: 1; overflow-y: auto; padding: 0 14px 14px; position: relative; }
-.list-body::-webkit-scrollbar { width: 3px; }
-.list-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+.list-body { flex: 1; overflow-y: auto; padding: 0 16px 14px; position: relative; }
+.list-body::-webkit-scrollbar { width: 4px; }
+.list-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 4px; }
 
 .empty-state { display: flex; align-items: center; justify-content: center; height: 200px; }
 
-/* ===== 笔记卡片 ===== */
-.note-card {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px; padding: 14px; margin-bottom: 6px;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s, transform 0.15s;
-  position: relative; overflow: hidden;
-}
-.note-card::before {
-  content: ''; position: absolute; top: 0; left: 0;
-  width: 3px; height: 100%; background: transparent; transition: background 0.2s;
-}
-.note-card:hover {
-  border-color: var(--border-active);
-  background: var(--surface3);
-  transform: translateX(2px);
-}
-.note-card.active {
-  border-color: rgba(var(--accent-rgb),0.40);
-  background: var(--surface2);
-}
-.note-card.active::before { background: rgba(180,210,130,0.85); }
+/* ==========================================================
+   笔记卡片 — 极简纯白风格
+   ========================================================== */
 
+.note-card {
+  background: #ffffff;
+  border: 1px solid #eef0f2;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.3, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.note-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: transparent;
+  border-radius: 3px 0 0 3px;
+  transition: background 0.25s;
+}
+
+.note-card:hover {
+  border-color: #d8dadd;
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.02),
+    0 8px 16px rgba(0, 0, 0, 0.04);
+}
+
+.note-card.active {
+  border-color: #c2d8c2;
+  box-shadow: 0 0 0 1px rgba(114, 172, 114, 0.12);
+}
+.note-card.active::after { background: #7eba6c; }
+
+/* ---- 置顶卡片：极其微弱的淡绿色渐变 ---- */
+.note-card.pinned {
+  background: linear-gradient(135deg, #f6faf6 0%, #ffffff 100%);
+  border-color: #e2efe2;
+}
+.note-card.pinned:hover {
+  border-color: #c5ddc5;
+}
+
+.card-ribbon {
+  position: absolute; top: 0; right: 0;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0 20px 20px 0;
+  border-color: transparent rgba(126, 186, 108, 0.12) transparent transparent;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ---- 卡片内部 ---- */
 .card-header {
   display: flex; align-items: flex-start;
   justify-content: space-between; gap: 8px; margin-bottom: 6px;
 }
 .card-title {
   font-size: 13.5px; font-weight: 500;
-  color: var(--text);
+  color: #1a1a1a;
   flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .card-date {
   font-family: var(--font-mono); font-size: 10px;
-  color: var(--text-dim); white-space: nowrap;
+  color: #b0b0b0; white-space: nowrap;
 }
 .card-preview {
-  font-size: 12px; color: var(--text-muted); line-height: 1.6;
+  font-size: 12px; color: #8c8c8c; line-height: 1.65;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden; margin-bottom: 10px;
 }
 .card-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
+.pin-icon {
+  font-size: 13px; margin-right: 5px;
+  flex-shrink: 0;
+  color: #7eba6c;
+  opacity: 0.7;
+  vertical-align: middle;
+}
+
 .note-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; }
 .note-category {
-  margin-left: auto; font-size: 10px; color: var(--text-dim);
+  margin-left: auto; font-size: 10px; color: #aaa;
   display: flex; align-items: center; gap: 4px;
 }
 .trash-hint {
   margin-left: auto;
   font-size: 10px;
-  color: rgba(255,180,120,0.78);
+  color: #c8a070;
   font-family: var(--font-mono);
 }
 .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
@@ -894,29 +924,29 @@ function emitFilter() {
 .delete-category-tip {
   margin-bottom: 16px;
   line-height: 1.7;
-  color: var(--text-muted);
+  color: #666;
   font-size: 13px;
 }
 
 /* ===== 分页 ===== */
 .pagination {
   padding: 10px 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid #eef0f2;
   display: flex; justify-content: center; flex-shrink: 0;
 }
 
 :deep(.pagination .el-pagination button),
 :deep(.pagination .el-pager li) {
   background: transparent !important;
-  color: var(--text-dim) !important;
+  color: #999 !important;
   border: none !important;
 }
 :deep(.pagination .el-pager li.is-active) {
-  color: var(--text) !important;
-  background: rgba(var(--accent-rgb),0.16) !important;
+  color: #1a1a1a !important;
+  background: #e8f0e8 !important;
   border-radius: 4px !important;
 }
 :deep(.pagination .el-pager li:hover) {
-  color: var(--text) !important;
+  color: #444 !important;
 }
 </style>

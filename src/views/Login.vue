@@ -274,7 +274,7 @@ async function submit() {
 .hero-desc {
   font-size: 14px;
   line-height: 1.8;
-  color: rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.65);
   max-width: 400px;
 }
 
@@ -354,13 +354,16 @@ async function submit() {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
   letter-spacing: 0.3px;
+  font-family: inherit;
+  position: relative;
 }
 
 .tab-btn.active {
   color: rgba(255,255,255,0.9);
   border-bottom-color: rgba(180, 210, 130, 0.8);
+  box-shadow: 0 2px 8px rgba(180, 210, 130, 0.15);
 }
 
 .tab-btn:hover:not(.active) {
@@ -378,46 +381,48 @@ async function submit() {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 1.5px;
-  color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.7);
   margin-bottom: 6px;
   text-transform: uppercase;
 }
 
-/* 覆盖 Element Plus input 样式 */
+/* 覆盖 Element Plus input 样式 — 半透明毛玻璃输入框 */
 .login-form :deep(.el-input__wrapper) {
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.35) !important;
-  border-radius: 0 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px !important;
   box-shadow: none !important;
-  padding: 4px 0 !important;
-  transition: border-color 0.2s;
+  padding: 8px 14px !important;
+  transition: all 0.25s ease;
 }
 
 .login-form :deep(.el-input__wrapper:hover) {
-  border-bottom-color: rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .login-form :deep(.el-input__wrapper.is-focus) {
-  border-bottom-color: rgba(180, 210, 130, 0.85) !important;
-  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(130, 160, 120, 0.6) !important;
+  box-shadow:
+    0 0 0 3px rgba(130, 160, 120, 0.08),
+    0 0 12px rgba(130, 160, 120, 0.06) !important;
 }
 
 .login-form :deep(.el-input__inner) {
   background: transparent !important;
-  color: var(--text) !important;
+  color: #ffffff !important;
   font-size: 14px !important;
   letter-spacing: 0.2px;
   caret-color: rgba(180, 210, 130, 0.9);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .login-form :deep(.el-input__inner::placeholder) {
-  color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
 }
 
 .login-form :deep(.el-input__suffix .el-icon) {
-  color: rgba(255, 255, 255, 0.4) !important;
+  color: rgba(255, 255, 255, 0.45) !important;
 }
 
 .login-form :deep(.el-form-item__error) {
@@ -432,19 +437,36 @@ async function submit() {
   padding: 13px 0;
   background: rgba(180, 210, 130, 0.15);
   border: 1px solid rgba(180, 210, 130, 0.4);
-  border-radius: 3px;
+  border-radius: 6px;
   color: rgba(200, 230, 150, 0.95);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: rgba(180, 210, 130, 0.25);
-  border-color: rgba(180, 210, 130, 0.65);
+  background: rgba(180, 210, 130, 0.28);
+  border-color: rgba(180, 210, 130, 0.7);
   color: #fff;
+  box-shadow: 0 0 20px rgba(180, 210, 130, 0.10);
+}
+
+.submit-btn:hover:not(:disabled) span {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) span:not(.loading-dot) {
+  transform: translateX(4px);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .submit-btn:disabled {
@@ -461,19 +483,21 @@ async function submit() {
   margin-top: 18px;
   text-align: center;
   font-size: 12px;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.5);
 }
 
 .card-footer a {
-  color: rgba(180, 210, 130, 0.75);
+  color: rgba(200, 230, 150, 0.75);
   cursor: pointer;
   margin-left: 4px;
   text-decoration: none;
-  transition: color 0.2s;
+  transition: all 0.2s;
 }
 
 .card-footer a:hover {
-  color: rgba(200, 230, 150, 1);
+  color: rgba(255, 255, 255, 0.95);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* ===== 页脚 ===== */

@@ -3,10 +3,15 @@
     <!-- 空状态 -->
     <div v-if="!note && !isEditing" class="empty-detail">
       <div class="empty-icon">
-        <el-icon size="24"><Document /></el-icon>
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="6" width="32" height="36" rx="4" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.5"/>
+          <line x1="14" y1="18" x2="34" y2="18" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.35"/>
+          <line x1="14" y1="24" x2="28" y2="24" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.25"/>
+          <line x1="14" y1="30" x2="22" y2="30" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.2"/>
+        </svg>
       </div>
-      <div class="empty-title">选择一篇笔记</div>
-      <div class="empty-sub">从左侧列表中点击查看详情</div>
+      <div class="empty-title">选一篇笔记，开始记录灵感</div>
+      <div class="empty-sub">从左侧列表中点击即可查看详情</div>
     </div>
 
     <!-- 编辑/新建模式 -->
@@ -97,10 +102,12 @@
 
       <div class="detail-divider" />
 
-      <div class="stats-row">
-        <div class="stat"><div class="stat-num">{{ wordCount }}</div><div class="stat-label">字数</div></div>
-        <div class="stat"><div class="stat-num">{{ readTime }}</div><div class="stat-label">分钟读</div></div>
-        <div class="stat"><div class="stat-num">{{ note.tags?.length || 0 }}</div><div class="stat-label">标签</div></div>
+      <div class="metadata-row">
+        <span>{{ wordCount }} 字</span>
+        <span class="meta-sep">·</span>
+        <span>{{ readTime }} 分钟阅读</span>
+        <span class="meta-sep">·</span>
+        <span>{{ note.tags?.length || 0 }} 标签</span>
       </div>
 
       <div class="detail-body">
@@ -416,30 +423,30 @@ function formatSize(size) {
 .empty-detail {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  color: var(--text-dim); gap: 16px;
+  color: var(--text-dim); gap: 12px;
   padding: 40px;
 }
 .empty-icon {
-  width: 64px; height: 64px;
-  border: 2px dashed var(--border);
-  border-radius: 16px;
+  width: 80px; height: 80px;
+  border-radius: 20px;
   display: flex; align-items: center; justify-content: center;
   color: var(--text-dim);
   background: var(--surface2);
-  transition: border-color 0.3s, color 0.3s;
+  margin-bottom: 8px;
+  transition: background 0.3s, color 0.3s;
 }
 .empty-icon:hover {
-  border-color: rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.06);
   color: var(--accent);
 }
 .empty-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   color: var(--text);
-  letter-spacing: -0.2px;
+  letter-spacing: -0.01em;
 }
 .empty-sub {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-dim);
   font-weight: 400;
 }
@@ -466,14 +473,14 @@ function formatSize(size) {
 /* ===== 元信息区 ===== */
 .detail-meta { padding: 18px 22px 0; flex-shrink: 0; }
 .detail-title {
-  font-size: 22px; font-weight: 700;
-  color: var(--text); line-height: 1.3; margin-bottom: 10px;
-  letter-spacing: -0.3px;
+  font-size: 24px; font-weight: 600;
+  color: var(--text); line-height: 1.3; margin-bottom: 12px;
+  letter-spacing: -0.02em;
 }
 .title-input {
   width: 100%; background: none; border: none; outline: none;
-  font-size: 22px; font-weight: 700;
-  color: var(--text); letter-spacing: -0.3px; line-height: 1.3;
+  font-size: 24px; font-weight: 600;
+  color: var(--text); letter-spacing: -0.02em; line-height: 1.3;
   margin-bottom: 16px; display: block;
   caret-color: var(--accent);
   font-family: inherit;
@@ -495,32 +502,22 @@ function formatSize(size) {
 /* ===== 分割线 ===== */
 .detail-divider { height: 1px; background: var(--border); margin: 0 22px; flex-shrink: 0; }
 
-/* ===== 统计条 ===== */
-.stats-row {
-  display: flex; gap: 8px; padding: 16px 22px 0; flex-shrink: 0;
+/* ===== 元数据行（替代统计卡片）===== */
+.metadata-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 18px 22px 0; flex-shrink: 0;
+  font-size: 12px; color: #86868b;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
-.stat {
-  flex: 1;
-  background: var(--surface2);
-  padding: 14px 14px;
-  text-align: center;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  transition: border-color 0.2s, background 0.2s;
+.meta-sep {
+  color: rgba(128, 128, 128, 0.3);
+  font-weight: 300;
 }
-.stat:hover {
-  border-color: var(--border-active);
-  background: var(--surface3);
-}
-.stat-num {
-  font-family: var(--font-mono); font-size: 22px; font-weight: 700;
-  color: var(--accent); line-height: 1;
-  margin-bottom: 2px;
-}
-.stat-label { font-size: 10px; color: var(--text-dim); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
 /* ===== 内容体 ===== */
-.detail-body { flex: 1; overflow-y: auto; padding: 20px 22px 24px; }
+.detail-body { flex: 1; overflow-y: auto; padding: 28px 22px 24px; }
 .detail-body::-webkit-scrollbar { width: 4px; }
 .detail-body::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.15); border-radius: 4px; }
 

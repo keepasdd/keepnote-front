@@ -421,6 +421,7 @@ watch(
 
 .panel-center {
   border-radius: 16px;
+  background: #f8f9fa;
 }
 
 .panel-right {

@@ -15,6 +15,10 @@
   /* 边框（加强对比度） */
   --border:        rgba(255,255,255,0.14);
   --border-active: rgba(255,255,255,0.28);
+  --border-card:   rgba(255,255,255,0.10);
+
+  /* 画布背景（中间列列表区专用 — 始终浅色） */
+  --canvas:       #f8f9fa;
 
   /* 强调色 —— 鼠尾草绿 */
   --accent:       #7eba6c;               /* rgb(126,186,108) */
@@ -74,6 +78,10 @@
   /* 边框 */
   --border:        rgba(0, 0, 0, 0.10);
   --border-active: rgba(0, 0, 0, 0.22);
+  --border-card:   rgba(0, 0, 0, 0.04);
+
+  /* 画布背景（中间列列表区专用） */
+  --canvas:       #f7f8fa;
 
   color-scheme: light;
 }
