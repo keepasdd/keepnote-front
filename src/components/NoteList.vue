@@ -131,7 +131,7 @@
           <span
               v-for="tag in note.tags" :key="tag.id"
               class="note-tag"
-              :style="{ background: tag.color + '18', color: tag.color }"
+              :style="{ background: tag.color + '28', color: tag.color, borderColor: tag.color + '55' }"
           >{{ tag.name }}</span>
           <span class="trash-hint" v-if="isTrashMode">30天后自动删除</span>
           <span class="note-category" v-if="note.categoryName && !isTrashMode">
@@ -821,60 +821,65 @@ function emitFilter() {
 .empty-state { display: flex; align-items: center; justify-content: center; height: 200px; }
 
 /* ==========================================================
-   笔记卡片 — 极简纯白风格
+   笔记卡片 — 左侧 accent bar 悬浮展开风格
    ========================================================== */
 
 .note-card {
   background: #ffffff;
   border: 1px solid #eef0f2;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 10px;
+  padding: 18px 20px;
   margin-bottom: 8px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.3, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.note-card::after {
+/* 左侧 accent 竖线：hover 时滑入 */
+.note-card::before {
   content: '';
-  position: absolute; top: 0; left: 0;
-  width: 3px; height: 100%;
-  background: transparent;
-  border-radius: 3px 0 0 3px;
-  transition: background 0.25s;
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent, #7eba6c);
+  transform: scaleY(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0 3px 3px 0;
 }
 
 .note-card:hover {
   border-color: #d8dadd;
-  transform: translateY(-2px);
+  transform: translateX(2px);
   box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.02),
-    0 8px 16px rgba(0, 0, 0, 0.04);
+    0 2px 4px rgba(0, 0, 0, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.05);
 }
+.note-card:hover::before { transform: scaleY(1); }
 
 .note-card.active {
-  border-color: #c2d8c2;
-  box-shadow: 0 0 0 1px rgba(114, 172, 114, 0.12);
+  border-color: rgba(var(--accent-rgb, 126, 186, 108), 0.45);
+  background: linear-gradient(135deg, var(--accent-dim, rgba(126,186,108,0.07)), #ffffff);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb, 126, 186, 108), 0.12);
 }
-.note-card.active::after { background: #7eba6c; }
+.note-card.active::before { transform: scaleY(1); }
 
-/* ---- 置顶卡片：极其微弱的淡绿色渐变 ---- */
+/* ---- 置顶卡片：左侧 accent 实线边框 ---- */
 .note-card.pinned {
-  background: linear-gradient(135deg, #f6faf6 0%, #ffffff 100%);
-  border-color: #e2efe2;
+  border-left: 3px solid var(--accent, #7eba6c);
+  padding-left: 17px;
 }
 .note-card.pinned:hover {
-  border-color: #c5ddc5;
+  border-left-color: var(--accent-hover, #93cc7f);
 }
 
+/* 去掉原来的右上角三角丝带，改为圆点标识 */
 .card-ribbon {
-  position: absolute; top: 0; right: 0;
-  width: 0; height: 0;
-  border-style: solid;
-  border-width: 0 20px 20px 0;
-  border-color: transparent rgba(126, 186, 108, 0.12) transparent transparent;
+  position: absolute; top: 14px; right: 14px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent, #7eba6c);
+  opacity: 0.65;
   z-index: 1;
   pointer-events: none;
 }
@@ -882,33 +887,34 @@ function emitFilter() {
 /* ---- 卡片内部 ---- */
 .card-header {
   display: flex; align-items: flex-start;
-  justify-content: space-between; gap: 8px; margin-bottom: 6px;
+  justify-content: space-between; gap: 10px; margin-bottom: 6px;
 }
 .card-title {
-  font-size: 13.5px; font-weight: 500;
+  font-size: 14px; font-weight: 600;
   color: #1a1a1a;
   flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 .card-date {
-  font-family: var(--font-mono); font-size: 10px;
-  color: #b0b0b0; white-space: nowrap;
+  font-family: var(--font-mono, monospace); font-size: 10px;
+  color: #b0b0b0; white-space: nowrap; flex-shrink: 0;
 }
 .card-preview {
-  font-size: 12px; color: #8c8c8c; line-height: 1.65;
+  font-size: 12.5px; color: #8c8c8c; line-height: 1.6;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden; margin-bottom: 10px;
 }
 .card-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 .pin-icon {
-  font-size: 13px; margin-right: 5px;
+  font-size: 14px; margin-right: 5px;
   flex-shrink: 0;
-  color: #7eba6c;
-  opacity: 0.7;
+  color: var(--accent, #7eba6c);
+  opacity: 0.8;
   vertical-align: middle;
 }
 
-.note-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; }
+.note-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 500; border: 1px solid transparent; }
 .note-category {
   margin-left: auto; font-size: 10px; color: #aaa;
   display: flex; align-items: center; gap: 4px;
@@ -917,7 +923,7 @@ function emitFilter() {
   margin-left: auto;
   font-size: 10px;
   color: #c8a070;
-  font-family: var(--font-mono);
+  font-family: var(--font-mono, monospace);
 }
 .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 

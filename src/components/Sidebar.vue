@@ -25,7 +25,7 @@
           :class="{ active: activeNav === item.key }"
           @click="emit('nav-change', item.key)"
       >
-        <el-icon><component :is="item.icon" /></el-icon>
+        <span class="nav-emoji">{{ item.icon }}</span>
         {{ item.label }}
         <span class="badge">{{ item.count }}</span>
       </div>
@@ -242,9 +242,9 @@ const displayName = computed(() => {
 const avatarChar = computed(() => displayName.value.charAt(0))
 
 const navItems = computed(() => [
-  { key: 'all', label: '全部笔记', icon: 'HomeFilled', count: props.totalCount },
-  { key: 'favorite', label: '收藏夹', icon: 'StarFilled', count: props.favoriteCount },
-  { key: 'trash', label: '回收站', icon: 'DeleteFilled', count: props.trashCount },
+  { key: 'all', label: '全部笔记', icon: '📄', count: props.totalCount },
+  { key: 'favorite', label: '收藏夹', icon: '⭐', count: props.favoriteCount },
+  { key: 'trash', label: '回收站', icon: '🗑️', count: props.trashCount },
 ])
 
 function openProfile() {
@@ -382,6 +382,14 @@ async function submitCategory() {
   color: var(--text-dim);
   letter-spacing: 2px; text-transform: uppercase;
   padding: 8px 12px 6px;
+}
+
+.nav-emoji {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .nav-item {
